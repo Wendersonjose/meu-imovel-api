@@ -8,6 +8,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/imoveis")
 public class ImovelController {
@@ -34,5 +36,29 @@ public class ImovelController {
         return ResponseEntity
                 .created(uri)
                 .body(new DadosDetalhamentoImovel(imovel));
+    }
+
+    @GetMapping
+    public ResponseEntity<List<DadosDetalhamentoImovel>> listar() {
+
+        var imoveis = service.listar();
+
+        var dados = imoveis.stream()
+                .map(DadosDetalhamentoImovel::new)
+                .toList();
+
+        return ResponseEntity.ok(dados);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<DadosDetalhamentoImovel> detalhar(
+            @PathVariable Long id
+    ) {
+
+        var imovel = service.buscarPorId(id);
+
+        return ResponseEntity.ok(
+                new DadosDetalhamentoImovel(imovel)
+        );
     }
 }

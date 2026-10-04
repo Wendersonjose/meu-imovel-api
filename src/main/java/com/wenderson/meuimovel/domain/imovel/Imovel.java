@@ -1,6 +1,9 @@
 package com.wenderson.meuimovel.domain.imovel;
 
 import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -10,6 +13,8 @@ import java.time.LocalDate;
 
 @Entity
 @Table(name = "imovel")
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Imovel {
 
     @Id
@@ -23,26 +28,19 @@ public class Imovel {
     private String tipoImovel;
 
     private String matricula;
-
     private String cnm;
-
     private String cartorio;
 
     @Column(name = "cadastro_municipal")
     private String cadastroMunicipal;
 
     private String logradouro;
-
     private String numero;
-
     private String cidade;
-
     private String uf;
 
     private String lote;
-
     private String quadra;
-
     private String loteamento;
 
     @Column(name = "area_terreno", precision = 10, scale = 2)
@@ -79,10 +77,9 @@ public class Imovel {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
-    protected Imovel() {
-    }
-
     public Imovel(DadosCadastroImovel dados) {
+
+
         this.descricao = dados.descricao();
         this.tipoImovel = dados.tipoImovel();
 
@@ -112,105 +109,5 @@ public class Imovel {
 
         this.dataCompra = dados.dataCompra();
         this.observacao = dados.observacao();
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public String getDescricao() {
-        return descricao;
-    }
-
-    public String getTipoImovel() {
-        return tipoImovel;
-    }
-
-    public String getMatricula() {
-        return matricula;
-    }
-
-    public String getCnm() {
-        return cnm;
-    }
-
-    public String getCartorio() {
-        return cartorio;
-    }
-
-    public String getCadastroMunicipal() {
-        return cadastroMunicipal;
-    }
-
-    public String getLogradouro() {
-        return logradouro;
-    }
-
-    public String getNumero() {
-        return numero;
-    }
-
-    public String getCidade() {
-        return cidade;
-    }
-
-    public String getUf() {
-        return uf;
-    }
-
-    public String getLote() {
-        return lote;
-    }
-
-    public String getQuadra() {
-        return quadra;
-    }
-
-    public String getLoteamento() {
-        return loteamento;
-    }
-
-    public BigDecimal getAreaTerreno() {
-        return areaTerreno;
-    }
-
-    public BigDecimal getAreaConstruida() {
-        return areaConstruida;
-    }
-
-    public String getNumeroHabiteSe() {
-        return numeroHabiteSe;
-    }
-
-    public LocalDate getDataHabiteSe() {
-        return dataHabiteSe;
-    }
-
-    public BigDecimal getValorImovel() {
-        return valorImovel;
-    }
-
-    public BigDecimal getValorFinanciado() {
-        return valorFinanciado;
-    }
-
-    public BigDecimal getValorEntrada() {
-        return valorEntrada;
-    }
-
-    public LocalDate getDataCompra() {
-        return dataCompra;
-    }
-
-    public String getObservacao() {
-        return observacao;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
-
-    public Instant getUpdatedAt() {
-        return updatedAt;
     }
 }

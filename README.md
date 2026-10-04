@@ -21,7 +21,9 @@ O projeto possui dois objetivos principais:
 - Flyway
 - PostgreSQL
 - Supabase
+- Lombok
 - IntelliJ IDEA
+- Insomnia
 
 O frontend será desenvolvido futuramente utilizando React e TypeScript.
 
@@ -71,21 +73,33 @@ PostgreSQL
 
 Responsável pela camada HTTP da aplicação.
 
-Recebe as requisições, valida os dados de entrada e devolve as respostas HTTP.
+Recebe as requisições, delega os casos de uso para o service e devolve as respostas HTTP.
 
 **DTO**
 
-Objetos utilizados para transportar dados entre a API e seus consumidores.
+Responsável pelo transporte de dados de entrada e saída da API.
 
-A aplicação utiliza `record` sempre que apropriado.
+A aplicação utiliza Java `record` sempre que apropriado.
 
 **Service**
 
-Responsável por coordenar os casos de uso e regras de negócio.
+Responsável por coordenar os casos de uso da aplicação.
 
 **Repository**
 
 Responsável pelo acesso aos dados utilizando Spring Data JPA.
+
+**Componentes de domínio**
+
+Regras específicas podem ser delegadas para componentes especializados.
+
+Exemplo:
+
+```text
+ValidadorCadastroImovel
+```
+
+Esse componente concentra as regras de validação de duplicidade durante o cadastro.
 
 **JPA / Hibernate**
 
@@ -97,7 +111,7 @@ Banco de dados utilizado para persistência das informações.
 
 ---
 
-## 📂 Estrutura do projeto
+## 📂 Estrutura atual do projeto
 
 ```text
 src/main/java/com/wenderson/meuimovel
@@ -106,18 +120,15 @@ src/main/java/com/wenderson/meuimovel
 │   └── ImovelController.java
 │
 ├── domain
-│   ├── imovel
-│   │   ├── Imovel.java
-│   │   ├── ImovelRepository.java
-│   │   ├── ImovelService.java
-│   │   ├── ValidadorCadastroImovel.java
-│   │   ├── ImovelDuplicadoException.java
-│   │   ├── DadosCadastroImovel.java
-│   │   └── DadosDetalhamentoImovel.java
-│   │
-│   ├── pagamento
-│   ├── documento
-│   └── usuario
+│   └── imovel
+│       ├── Imovel.java
+│       ├── ImovelRepository.java
+│       ├── ImovelService.java
+│       ├── ValidadorCadastroImovel.java
+│       ├── ImovelDuplicadoException.java
+│       ├── ImovelNaoEncontradoException.java
+│       ├── DadosCadastroImovel.java
+│       └── DadosDetalhamentoImovel.java
 │
 ├── infra
 │   └── exception
@@ -126,17 +137,7 @@ src/main/java/com/wenderson/meuimovel
 └── MeuImovelApiApplication.java
 ```
 
-A arquitetura principal adotada é:
-
-```text
-Controller
-    ↓
-Service
-    ↓
-Repository
-```
-
-Regras específicas podem ser delegadas a componentes especializados, como o `ValidadorCadastroImovel`.
+Os futuros domínios de pagamento, documento e usuário serão adicionados conforme essas funcionalidades forem desenvolvidas.
 
 ---
 
@@ -148,7 +149,7 @@ A conexão da aplicação é realizada através do JDBC Session Pooler.
 
 As credenciais não ficam armazenadas diretamente no código-fonte.
 
-São utilizadas as seguintes variáveis de ambiente:
+São utilizadas as variáveis de ambiente:
 
 ```text
 DB_URL
@@ -184,7 +185,7 @@ As migrations ficam em:
 src/main/resources/db/migration
 ```
 
-Migrations implementadas até o momento:
+Migrations implementadas:
 
 ```text
 V1__create_table_imovel.sql
@@ -198,7 +199,7 @@ Criação inicial da tabela `imovel`.
 
 ### V2
 
-Inclusão de informações cadastrais do imóvel e adequação dos campos de auditoria para `TIMESTAMPTZ`.
+Inclusão dos dados cadastrais do imóvel e adequação dos campos de auditoria para `TIMESTAMPTZ`.
 
 ### V3
 
@@ -237,23 +238,42 @@ Entre os campos existentes estão:
 - data de criação;
 - data de atualização.
 
-Para valores monetários é utilizado:
+Para valores monetários e áreas é utilizado:
 
 ```java
 BigDecimal
 ```
 
-Para datas sem informação de horário:
+Para datas sem horário:
 
 ```java
 LocalDate
 ```
 
-Para campos de auditoria:
+Para os campos de auditoria:
 
 ```java
 Instant
 ```
+
+---
+
+## ✨ Lombok
+
+A entidade `Imovel` utiliza Lombok para reduzir código repetitivo.
+
+Atualmente são utilizadas:
+
+```java
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+```
+
+O `@Getter` gera automaticamente os métodos de leitura dos atributos.
+
+O `@NoArgsConstructor` gera o construtor sem argumentos necessário para o funcionamento do JPA/Hibernate.
+
+Não é utilizado `@Data`, pois não queremos gerar setters públicos indiscriminadamente para a entidade.
 
 ---
 
@@ -269,6 +289,16 @@ DadosDetalhamentoImovel
 ```
 
 Os DTOs são implementados utilizando Java `record`.
+
+O fluxo de saída da API segue:
+
+```text
+Imovel
+    ↓
+DadosDetalhamentoImovel
+    ↓
+JSON
+```
 
 ---
 
@@ -296,7 +326,7 @@ Caso seja encontrada uma duplicidade, é lançada:
 ImovelDuplicadoException
 ```
 
-O tratamento global da aplicação converte a exceção em:
+O tratamento global converte essa exceção em:
 
 ```http
 409 Conflict
@@ -310,11 +340,51 @@ Exemplo:
 }
 ```
 
-Além da validação realizada pela aplicação, o PostgreSQL possui constraints `UNIQUE` para proteger a integridade dos dados.
+Além da validação feita pela aplicação, o PostgreSQL também possui constraints `UNIQUE`, garantindo uma segunda camada de proteção da integridade dos dados.
+
+---
+
+## 🔎 Imóvel não encontrado
+
+Ao consultar um imóvel por ID, o service utiliza:
+
+```java
+repository.findById(id)
+```
+
+Caso o imóvel não exista, é lançada:
+
+```text
+ImovelNaoEncontradoException
+```
+
+O tratamento global converte essa exceção em:
+
+```http
+404 Not Found
+```
+
+Exemplo:
+
+```json
+{
+  "mensagem": "Imóvel não encontrado com o id: 999"
+}
+```
 
 ---
 
 ## 🌐 Endpoints
+
+### Resumo
+
+| Método | Endpoint | Descrição | Sucesso |
+|---|---|---|---|
+| POST | `/imoveis` | Cadastrar imóvel | `201 Created` |
+| GET | `/imoveis` | Listar imóveis | `200 OK` |
+| GET | `/imoveis/{id}` | Detalhar imóvel | `200 OK` |
+
+---
 
 ### Cadastrar imóvel
 
@@ -351,16 +421,83 @@ Exemplo de requisição utilizando dados fictícios:
 }
 ```
 
-Em caso de sucesso:
+Resposta de sucesso:
 
 ```http
 201 Created
 ```
 
-Em caso de imóvel já cadastrado:
+Em caso de duplicidade:
 
 ```http
 409 Conflict
+```
+
+---
+
+### Listar imóveis
+
+```http
+GET /imoveis
+```
+
+Retorna uma lista contendo os imóveis cadastrados.
+
+Resposta de sucesso:
+
+```http
+200 OK
+```
+
+Exemplo simplificado:
+
+```json
+[
+  {
+    "id": 1,
+    "descricao": "Imóvel residencial",
+    "tipoImovel": "Residencial unifamiliar",
+    "cidade": "Cidade Exemplo",
+    "uf": "MG",
+    "valorImovel": 400000.00
+  }
+]
+```
+
+A API retorna o DTO completo de detalhamento para cada imóvel.
+
+---
+
+### Detalhar imóvel por ID
+
+```http
+GET /imoveis/{id}
+```
+
+Exemplo:
+
+```http
+GET /imoveis/1
+```
+
+Resposta quando encontrado:
+
+```http
+200 OK
+```
+
+Caso não exista:
+
+```http
+404 Not Found
+```
+
+Exemplo:
+
+```json
+{
+  "mensagem": "Imóvel não encontrado com o id: 999"
+}
 ```
 
 ---
@@ -379,44 +516,78 @@ Classe responsável:
 TratadorDeErros.java
 ```
 
-O objetivo é evitar que controllers concentrem lógica de tratamento de exceções e manter respostas HTTP padronizadas.
+Atualmente são tratados:
+
+```text
+ImovelDuplicadoException
+→ 409 Conflict
+
+ImovelNaoEncontradoException
+→ 404 Not Found
+```
+
+Esse modelo evita concentrar tratamento de exceções dentro dos controllers.
 
 ---
 
 ## 🔐 Segurança das configurações
 
-Credenciais, senhas, tokens e outras informações sensíveis não devem ser versionados.
+Credenciais, senhas, tokens, certificados e outras informações sensíveis não devem ser versionados.
 
-O projeto utiliza variáveis de ambiente para as configurações do banco de dados.
+O projeto utiliza variáveis de ambiente para as configurações do banco.
 
-Arquivos locais contendo credenciais devem permanecer protegidos pelo `.gitignore`.
+O `.gitignore` também protege arquivos locais como:
+
+```text
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+```
 
 ---
 
 ## 📐 Decisões de arquitetura
 
-O projeto segue algumas regras:
+O projeto segue as seguintes regras:
 
 - DTO de entrada separado de DTO de saída;
 - uso de `record` para DTOs quando apropriado;
-- entidades JPA não são expostas diretamente na API;
+- entidades JPA não são expostas diretamente pela API;
+- Lombok utilizado apenas para reduzir boilerplate controlado;
+- setters públicos indiscriminados são evitados;
 - injeção de dependência por construtor;
-- controllers concentram somente responsabilidades HTTP;
-- services coordenam regras de negócio;
+- controllers concentram responsabilidades HTTP;
+- services coordenam os casos de uso;
 - repositories concentram persistência;
-- validadores podem ser separados em componentes específicos;
-- schema controlado pelo Flyway;
-- uso de migrations para alterações estruturais;
-- credenciais não são armazenadas diretamente no repositório;
-- setters públicos indiscriminados são evitados nas entidades.
+- regras específicas podem ser delegadas a componentes especializados;
+- tratamento de exceções é centralizado;
+- schema é controlado pelo Flyway;
+- alterações estruturais são feitas através de migrations;
+- credenciais não são armazenadas diretamente no repositório.
 
 ---
 
 ## 📊 Evolução futura
 
-A modelagem está sendo preparada para permitir análises históricas e integração futura com ferramentas como Power BI.
+A modelagem está sendo preparada para permitir análises históricas e futura integração com ferramentas como Power BI.
 
-O objetivo é manter movimentações financeiras e eventos históricos separados dos dados cadastrais do imóvel.
+A intenção é manter dados relativamente estáveis do imóvel separados de movimentações como:
+
+```text
+pagamentos
+despesas
+avaliações
+documentos
+eventos financeiros
+histórico de valores
+```
+
+Esses domínios serão implementados posteriormente.
 
 ---
 
@@ -427,34 +598,46 @@ Já implementado:
 - projeto Spring Boot;
 - Java 17;
 - conexão PostgreSQL/Supabase;
-- configuração por variáveis de ambiente;
+- configuração através de variáveis de ambiente;
 - Flyway;
-- migrations do domínio de imóvel;
+- migrations V1, V2 e V3;
 - entidade `Imovel`;
+- Lombok na entidade;
 - DTO de cadastro;
 - DTO de detalhamento;
-- repository;
-- service;
-- controller de cadastro;
-- validador de duplicidade;
-- exceção de domínio para imóvel duplicado;
-- tratamento global de erro;
-- retorno `409 Conflict` para duplicidades;
-- testes manuais através do Insomnia.
+- `ImovelRepository`;
+- `ImovelService`;
+- `ImovelController`;
+- `ValidadorCadastroImovel`;
+- validação de duplicidade;
+- `ImovelDuplicadoException`;
+- `ImovelNaoEncontradoException`;
+- `TratadorDeErros`;
+- `POST /imoveis`;
+- `GET /imoveis`;
+- `GET /imoveis/{id}`;
+- retorno `201 Created`;
+- retorno `200 OK`;
+- retorno `409 Conflict`;
+- retorno `404 Not Found`;
+- testes manuais realizados através do Insomnia;
+- compilação Maven validada com `BUILD SUCCESS`.
 
 ---
 
-## 🛣️ Próximo passo
+## 🛣️ Próximos passos
 
-Implementação do endpoint:
+O próximo passo do domínio de imóvel será implementar a atualização dos dados do imóvel.
+
+A ideia é adicionar um fluxo semelhante a:
 
 ```http
-GET /imoveis/{id}
+PATCH /imoveis/{id}
 ```
 
-para consultar o detalhamento de um imóvel pelo identificador.
+com DTO específico de atualização e métodos de domínio para alterar apenas os campos permitidos.
 
-Os módulos de pagamento, documentos e demais funcionalidades serão desenvolvidos posteriormente, após a conclusão do fluxo inicial de imóvel.
+Depois disso, ainda poderemos avaliar listagem paginada e outras operações antes de iniciar os módulos de pagamentos, documentos e demais funcionalidades.
 
 ---
 
@@ -462,4 +645,4 @@ Os módulos de pagamento, documentos e demais funcionalidades serão desenvolvid
 
 **Wenderson José da Silva**
 
-Projeto desenvolvido como aplicação prática de estudos em Java e Spring Boot.
+Projeto desenvolvido como aplicação prática de estudos em Java, Spring Boot, PostgreSQL e arquitetura de APIs REST.

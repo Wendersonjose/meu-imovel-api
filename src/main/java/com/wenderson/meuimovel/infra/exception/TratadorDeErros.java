@@ -1,6 +1,7 @@
 package com.wenderson.meuimovel.infra.exception;
 
 import com.wenderson.meuimovel.domain.imovel.ImovelDuplicadoException;
+import com.wenderson.meuimovel.domain.imovel.ImovelNaoEncontradoException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -16,6 +17,16 @@ public class TratadorDeErros {
 
         return ResponseEntity
                 .status(HttpStatus.CONFLICT)
+                .body(new DadosErro(exception.getMessage()));
+    }
+
+    @ExceptionHandler(ImovelNaoEncontradoException.class)
+    public ResponseEntity<DadosErro> tratarErroImovelNaoEncontrado(
+            ImovelNaoEncontradoException exception
+    ) {
+
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
                 .body(new DadosErro(exception.getMessage()));
     }
 
