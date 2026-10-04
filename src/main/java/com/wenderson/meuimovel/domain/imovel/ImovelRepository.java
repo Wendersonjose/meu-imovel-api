@@ -16,4 +16,22 @@ public interface ImovelRepository extends JpaRepository<Imovel, Long> {
             String uf,
             String cadastroMunicipal
     );
+
+    boolean existsByCnmAndIdNot(
+            String cnm,
+            Long id
+    );
+
+    boolean existsByCartorioAndMatriculaAndIdNot(
+            String cartorio,
+            String matricula,
+            Long id
+    );
+
+    boolean existsByCidadeAndUfAndCadastroMunicipalAndIdNot(
+            String cidade,
+            String uf,
+            String cadastroMunicipal,
+            Long id
+    );
 }

@@ -110,4 +110,111 @@ public class Imovel {
         this.dataCompra = dados.dataCompra();
         this.observacao = dados.observacao();
     }
+
+    public void atualizar(DadosAtualizacaoImovel dados) {
+        atualizarDadosCadastrais(dados);
+        atualizarEndereco(dados);
+        atualizarCaracteristicas(dados);
+        atualizarFinanceiro(dados);
+    }
+
+    private void atualizarDadosCadastrais(DadosAtualizacaoImovel dados) {
+
+        if (dados.descricao() != null) {
+            this.descricao = dados.descricao();
+        }
+
+        if (dados.tipoImovel() != null) {
+            this.tipoImovel = dados.tipoImovel();
+        }
+
+        if (dados.matricula() != null) {
+            this.matricula = dados.matricula();
+        }
+
+        if (dados.cnm() != null) {
+            this.cnm = dados.cnm();
+        }
+
+        if (dados.cartorio() != null) {
+            this.cartorio = dados.cartorio();
+        }
+
+        if (dados.cadastroMunicipal() != null) {
+            this.cadastroMunicipal = dados.cadastroMunicipal();
+        }
+    }
+
+    private void atualizarEndereco(DadosAtualizacaoImovel dados) {
+
+        if (dados.logradouro() != null) {
+            this.logradouro = dados.logradouro();
+        }
+
+        if (dados.numero() != null) {
+            this.numero = dados.numero();
+        }
+
+        if (dados.cidade() != null) {
+            this.cidade = dados.cidade();
+        }
+
+        if (dados.uf() != null) {
+            this.uf = dados.uf();
+        }
+
+        if (dados.lote() != null) {
+            this.lote = dados.lote();
+        }
+
+        if (dados.quadra() != null) {
+            this.quadra = dados.quadra();
+        }
+
+        if (dados.loteamento() != null) {
+            this.loteamento = dados.loteamento();
+        }
+    }
+
+    private void atualizarCaracteristicas(DadosAtualizacaoImovel dados) {
+
+        if (dados.areaTerreno() != null) {
+            this.areaTerreno = dados.areaTerreno();
+        }
+
+        if (dados.areaConstruida() != null) {
+            this.areaConstruida = dados.areaConstruida();
+        }
+
+        if (dados.numeroHabiteSe() != null) {
+            this.numeroHabiteSe = dados.numeroHabiteSe();
+        }
+
+        if (dados.dataHabiteSe() != null) {
+            this.dataHabiteSe = dados.dataHabiteSe();
+        }
+    }
+
+    private void atualizarFinanceiro(DadosAtualizacaoImovel dados) {
+
+        if (dados.valorImovel() != null) {
+            this.valorImovel = dados.valorImovel();
+        }
+
+        if (dados.valorFinanciado() != null) {
+            this.valorFinanciado = dados.valorFinanciado();
+        }
+
+        if (dados.valorEntrada() != null) {
+            this.valorEntrada = dados.valorEntrada();
+        }
+
+        if (dados.dataCompra() != null) {
+            this.dataCompra = dados.dataCompra();
+        }
+
+        if (dados.observacao() != null) {
+            this.observacao = dados.observacao();
+        }
+    }
 }

@@ -1,5 +1,6 @@
 package com.wenderson.meuimovel.controller;
 
+import com.wenderson.meuimovel.domain.imovel.DadosAtualizacaoImovel;
 import com.wenderson.meuimovel.domain.imovel.DadosCadastroImovel;
 import com.wenderson.meuimovel.domain.imovel.DadosDetalhamentoImovel;
 import com.wenderson.meuimovel.domain.imovel.ImovelService;
@@ -56,6 +57,18 @@ public class ImovelController {
     ) {
 
         var imovel = service.buscarPorId(id);
+
+        return ResponseEntity.ok(
+                new DadosDetalhamentoImovel(imovel)
+        );
+    }
+
+    @PatchMapping("/{id}")
+    public ResponseEntity<DadosDetalhamentoImovel> atualizar(
+            @PathVariable Long id,
+            @RequestBody DadosAtualizacaoImovel dados
+    ) {
+        var imovel = service.atualizar(id, dados);
 
         return ResponseEntity.ok(
                 new DadosDetalhamentoImovel(imovel)

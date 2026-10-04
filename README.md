@@ -99,7 +99,7 @@ Exemplo:
 ValidadorCadastroImovel
 ```
 
-Esse componente concentra as regras de validação de duplicidade durante o cadastro.
+Esse componente concentra as regras de validação de duplicidade durante o cadastro e a atualização de imóveis.
 
 **JPA / Hibernate**
 
@@ -128,6 +128,7 @@ src/main/java/com/wenderson/meuimovel
 │       ├── ImovelDuplicadoException.java
 │       ├── ImovelNaoEncontradoException.java
 │       ├── DadosCadastroImovel.java
+│       ├── DadosAtualizacaoImovel.java
 │       └── DadosDetalhamentoImovel.java
 │
 ├── infra
@@ -275,6 +276,14 @@ O `@NoArgsConstructor` gera o construtor sem argumentos necessário para o funci
 
 Não é utilizado `@Data`, pois não queremos gerar setters públicos indiscriminadamente para a entidade.
 
+As alterações da entidade são realizadas através de métodos de domínio.
+
+Exemplo:
+
+```java
+imovel.atualizar(dados);
+```
+
 ---
 
 ## 📦 DTOs
@@ -285,12 +294,35 @@ Atualmente existem:
 
 ```text
 DadosCadastroImovel
+DadosAtualizacaoImovel
 DadosDetalhamentoImovel
 ```
 
 Os DTOs são implementados utilizando Java `record`.
 
-O fluxo de saída da API segue:
+### DadosCadastroImovel
+
+Utilizado como DTO de entrada no cadastro de um imóvel.
+
+```text
+POST /imoveis
+```
+
+### DadosAtualizacaoImovel
+
+Utilizado como DTO de entrada na atualização parcial de um imóvel.
+
+```text
+PATCH /imoveis/{id}
+```
+
+Os campos são opcionais porque apenas os dados enviados devem ser alterados.
+
+### DadosDetalhamentoImovel
+
+Utilizado como DTO de saída da API.
+
+O fluxo de saída segue:
 
 ```text
 Imovel
@@ -304,7 +336,7 @@ JSON
 
 ## ✅ Validação de duplicidade
 
-Antes de persistir um imóvel, o sistema executa validações através do componente:
+Antes de persistir ou atualizar determinadas informações de um imóvel, o sistema executa validações através do componente:
 
 ```text
 ValidadorCadastroImovel
@@ -344,9 +376,35 @@ Além da validação feita pela aplicação, o PostgreSQL também possui constra
 
 ---
 
+## 🔄 Validação durante atualização
+
+Durante uma atualização, o imóvel que está sendo alterado não pode ser considerado uma duplicidade dele mesmo.
+
+Por exemplo, se o imóvel de ID `1` já possui determinado CNM, enviar novamente esse mesmo CNM no `PATCH` deve ser permitido.
+
+Para isso, o repository possui consultas que desconsideram o ID atual.
+
+Exemplo:
+
+```java
+existsByCnmAndIdNot(cnm, id)
+```
+
+O mesmo princípio é utilizado para:
+
+```text
+cartório + matrícula
+
+cidade + UF + cadastro municipal
+```
+
+Assim, a validação procura somente outro imóvel com os mesmos identificadores.
+
+---
+
 ## 🔎 Imóvel não encontrado
 
-Ao consultar um imóvel por ID, o service utiliza:
+Ao consultar ou atualizar um imóvel por ID, o service utiliza a busca pelo repository.
 
 ```java
 repository.findById(id)
@@ -383,10 +441,11 @@ Exemplo:
 | POST | `/imoveis` | Cadastrar imóvel | `201 Created` |
 | GET | `/imoveis` | Listar imóveis | `200 OK` |
 | GET | `/imoveis/{id}` | Detalhar imóvel | `200 OK` |
+| PATCH | `/imoveis/{id}` | Atualizar parcialmente um imóvel | `200 OK` |
 
 ---
 
-### Cadastrar imóvel
+## ➕ Cadastrar imóvel
 
 ```http
 POST /imoveis
@@ -427,6 +486,14 @@ Resposta de sucesso:
 201 Created
 ```
 
+A resposta também possui o header `Location` apontando para o recurso criado.
+
+Exemplo:
+
+```text
+/imoveis/1
+```
+
 Em caso de duplicidade:
 
 ```http
@@ -435,7 +502,7 @@ Em caso de duplicidade:
 
 ---
 
-### Listar imóveis
+## 📋 Listar imóveis
 
 ```http
 GET /imoveis
@@ -468,7 +535,7 @@ A API retorna o DTO completo de detalhamento para cada imóvel.
 
 ---
 
-### Detalhar imóvel por ID
+## 🔍 Detalhar imóvel por ID
 
 ```http
 GET /imoveis/{id}
@@ -499,6 +566,126 @@ Exemplo:
   "mensagem": "Imóvel não encontrado com o id: 999"
 }
 ```
+
+---
+
+## ✏️ Atualizar imóvel por ID
+
+```http
+PATCH /imoveis/{id}
+```
+
+O endpoint permite atualizar parcialmente os dados de um imóvel.
+
+Somente os campos enviados na requisição são alterados.
+
+Exemplo:
+
+```http
+PATCH /imoveis/1
+```
+
+Body:
+
+```json
+{
+  "observacao": "Contrato assinado."
+}
+```
+
+Resposta de sucesso:
+
+```http
+200 OK
+```
+
+A atualização utiliza o DTO:
+
+```text
+DadosAtualizacaoImovel
+```
+
+O service primeiro localiza o imóvel:
+
+```java
+var imovel = buscarPorId(id);
+```
+
+Depois valida possíveis duplicidades:
+
+```java
+validador.validarAtualizacao(imovel, dados);
+```
+
+Por fim, delega a alteração para a própria entidade:
+
+```java
+imovel.atualizar(dados);
+```
+
+O método de domínio divide as alterações em grupos:
+
+```text
+dados cadastrais
+endereço
+características do imóvel
+dados financeiros
+```
+
+Como o objeto recuperado pelo JPA permanece gerenciado dentro da transação, o Hibernate identifica as alterações realizadas e executa o `UPDATE` através do mecanismo de dirty checking.
+
+Não é necessário chamar explicitamente:
+
+```java
+repository.save(imovel);
+```
+
+para essa atualização.
+
+O campo:
+
+```text
+updatedAt
+```
+
+é atualizado automaticamente pelo Hibernate através de:
+
+```java
+@UpdateTimestamp
+```
+
+Caso o imóvel informado não exista:
+
+```http
+404 Not Found
+```
+
+---
+
+## 🧪 Testes realizados no PATCH
+
+O endpoint de atualização foi testado manualmente através do Insomnia.
+
+Foram verificados os seguintes cenários:
+
+```text
+alteração parcial de observação
+→ 200 OK
+
+manutenção do mesmo CNM do próprio imóvel
+→ 200 OK
+
+manutenção da mesma matrícula + cartório
+→ 200 OK
+
+manutenção do mesmo cadastro municipal
+→ 200 OK
+
+tentativa de atualizar imóvel inexistente
+→ 404 Not Found
+```
+
+Os testes confirmaram que a validação de atualização não considera o próprio imóvel como duplicado.
 
 ---
 
@@ -549,6 +736,8 @@ O `.gitignore` também protege arquivos locais como:
 *.keystore
 ```
 
+As credenciais do PostgreSQL/Supabase não ficam diretamente no `application.properties`.
+
 ---
 
 ## 📐 Decisões de arquitetura
@@ -560,6 +749,7 @@ O projeto segue as seguintes regras:
 - entidades JPA não são expostas diretamente pela API;
 - Lombok utilizado apenas para reduzir boilerplate controlado;
 - setters públicos indiscriminados são evitados;
+- alterações da entidade são feitas através de métodos de domínio;
 - injeção de dependência por construtor;
 - controllers concentram responsabilidades HTTP;
 - services coordenam os casos de uso;
@@ -587,6 +777,8 @@ eventos financeiros
 histórico de valores
 ```
 
+Isso permitirá preservar histórico e construir análises temporais futuramente.
+
 Esses domínios serão implementados posteriormente.
 
 ---
@@ -603,23 +795,31 @@ Já implementado:
 - migrations V1, V2 e V3;
 - entidade `Imovel`;
 - Lombok na entidade;
-- DTO de cadastro;
-- DTO de detalhamento;
+- DTO de cadastro `DadosCadastroImovel`;
+- DTO de atualização `DadosAtualizacaoImovel`;
+- DTO de detalhamento `DadosDetalhamentoImovel`;
 - `ImovelRepository`;
 - `ImovelService`;
 - `ImovelController`;
 - `ValidadorCadastroImovel`;
 - validação de duplicidade;
+- validação de duplicidade durante atualização;
+- validação que desconsidera o próprio imóvel durante atualização;
 - `ImovelDuplicadoException`;
 - `ImovelNaoEncontradoException`;
 - `TratadorDeErros`;
 - `POST /imoveis`;
 - `GET /imoveis`;
 - `GET /imoveis/{id}`;
+- `PATCH /imoveis/{id}`;
 - retorno `201 Created`;
 - retorno `200 OK`;
 - retorno `409 Conflict`;
 - retorno `404 Not Found`;
+- atualização parcial dos dados do imóvel;
+- métodos de domínio para atualização controlada;
+- dirty checking do Hibernate na atualização;
+- atualização automática de `updatedAt`;
 - testes manuais realizados através do Insomnia;
 - compilação Maven validada com `BUILD SUCCESS`.
 
@@ -627,17 +827,20 @@ Já implementado:
 
 ## 🛣️ Próximos passos
 
-O próximo passo do domínio de imóvel será implementar a atualização dos dados do imóvel.
+O fluxo inicial do domínio de imóvel já possui:
 
-A ideia é adicionar um fluxo semelhante a:
-
-```http
-PATCH /imoveis/{id}
+```text
+cadastro
+consulta por ID
+listagem
+atualização parcial
+validação de duplicidade
+tratamento de imóvel não encontrado
 ```
 
-com DTO específico de atualização e métodos de domínio para alterar apenas os campos permitidos.
+Antes de iniciar os módulos de pagamentos, documentos e demais funcionalidades, ainda serão avaliadas as próximas operações necessárias para concluir o domínio inicial de imóvel.
 
-Depois disso, ainda poderemos avaliar listagem paginada e outras operações antes de iniciar os módulos de pagamentos, documentos e demais funcionalidades.
+O desenvolvimento continuará de forma incremental, mantendo a separação entre responsabilidades e evitando avançar para outros domínios antes de finalizar corretamente o fluxo de imóvel.
 
 ---
 

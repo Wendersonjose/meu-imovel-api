@@ -1,6 +1,9 @@
 package com.wenderson.meuimovel.domain.imovel;
 
+
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.util.List;
 
 @Service
@@ -33,5 +36,20 @@ public class ImovelService {
     public Imovel buscarPorId(Long id) {
         return repository.findById(id)
                 .orElseThrow(() -> new ImovelNaoEncontradoException(id));
+    }
+
+    @Transactional
+    public Imovel atualizar(
+            Long id,
+            DadosAtualizacaoImovel dados
+    ) {
+
+        var imovel = buscarPorId(id);
+
+        validador.validarAtualizacao(imovel, dados);
+
+        imovel.atualizar(dados);
+
+        return imovel;
     }
 }
