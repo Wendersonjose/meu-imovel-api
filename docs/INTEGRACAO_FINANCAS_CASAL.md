@@ -28,20 +28,21 @@ Meu Imóvel API (Java 17 / Spring Boot)
            │
            ▼
 PostgreSQL (Flyway, V1–V3 existentes, V4–V5 propostas)
- ├─ imovel (inalterado)
- ├─ fin_familia / fin_membro
- ├─ fin_categoria / fin_conta / fin_lancamento
- ├─ fin_orcamento / fin_transferencia
- ├─ fin_imovel_familia
- └─ fin_vw_* (leituras dos gráficos)
+ ├─ public.imovel (inalterado)
+ └─ schema privado financas (nao expor na Data API)
+     ├─ fin_familia / fin_membro
+     ├─ fin_categoria / fin_conta / fin_lancamento
+     ├─ fin_orcamento / fin_transferencia
+     ├─ fin_imovel_familia
+     └─ fin_vw_* (leituras dos graficos)
 ```
 
 ## O que já foi implementado nesta branch
 
-- **V4**: esquema de dados financeiros para famílias, usuários, contas,
+- **V4**: schema privado `financas` e tabelas financeiras para famílias, usuários, contas,
   categorias, despesas e receitas, orçamentos, transferências e vínculo opcional
   a imóveis. Sem alterar ou excluir registros antigos.
-- **V5**: consultas analíticas de competência, fluxo de caixa diário real,
+- **V5**: views privadas para consultas analíticas de competência, fluxo de caixa diário real,
   despesas por categoria, gastos por responsável e consumo de orçamento.
 - Associações com chave de família composta impedem referenciar contas,
   categorias, membros ou imóveis de outra família por engano.
@@ -70,7 +71,10 @@ aplicação rodar Flyway**. Não executar diretamente no banco de produção sem
 
 **A API atual não tem autenticação nem autorização implementadas.** Os endpoints
 `/imoveis` atuais também não têm proteção por usuário. **Não expor dados reais**
-nem endpoints financeiros até completar esta etapa.
+nem endpoints financeiros até completar esta etapa. O schema `financas` **nao deve ser adicionado** aos
+'Exposed schemas' da Data API do Supabase. Uma aplicacao Spring/JDBC que use um
+usuario diferente do criador do schema precisara de privilegios SQL concedidos
+explicitamente a esse usuario (nunca a `anon` ou `authenticated`).
 
 Implementar antes de conectar o frontend:
 
@@ -122,7 +126,9 @@ autorização, validações, service e controller antes de utilizá-las.
 
 ## Checklist antes do merge
 
-- [ ] Testar Flyway V4 e V5 em PostgreSQL local de testes (nunca homologar direto em produção)
+- [ ] Testar Flyway V4 e V5 em PostgreSQL local de testes (nunca homologar direto em producao)
+- [ ] Executar `docs/sql/financas_smoke_test.sql` em banco de teste; termina com `ROLLBACK`
+- [ ] Confirmar que `financas` nao aparece nos schemas expostos da API Supabase
 - [ ] Validar constraints e índices, sobretudo referências entre famílias
 - [ ] Configurar autenticação e restringir `/imoveis` por dono/família
 - [ ] Testar duas contas de usuários e acesso de outro grupo
@@ -131,5 +137,5 @@ autorização, validações, service e controller antes de utilizá-las.
 - [ ] Validar versão mobile e HTTPS
 - [ ] Revisar licença, backups, migrações e planos de rollback
 
-**Status:** a branch contém apenas fundação de banco + documentação de
-integração. **Não há implantação nem integração visual concluída**.
+**Status:** a branch contém somente estrutura privada de banco,
+consultas analiticas, roteiro de teste e documentacao de integracao. **Não há implantação nem integração visual concluída**.
