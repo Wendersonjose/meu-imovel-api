@@ -3,6 +3,7 @@ package com.wenderson.meuimovel.infra.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -16,35 +17,42 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(
-            HttpSecurity http
+            HttpSecurity http,
+            Environment environment
     ) throws Exception {
 
         http
-                // API REST autenticada por Bearer Token.
-                // Nao utiliza sessao HTTP para autenticacao.
+                // API REST sem sessao HTTP.
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(
                                 SessionCreationPolicy.STATELESS
                         )
                 )
 
-                // Desativa CSRF para a API stateless.
-                // A autenticacao utilizara o header Authorization.
+                // Autenticacao feita por Bearer Token.
                 .csrf(AbstractHttpConfigurer::disable)
 
-                // Desativa os mecanismos tradicionais de login.
+                // Desativa login por formulario e HTTP Basic.
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
 
-                // Exige autenticacao em todos os endpoints.
-                // Nenhuma rota sera publica por padrao.
-                .authorizeHttpRequests(authorize -> authorize
-                        .anyRequest().authenticated()
-                )
+                // Regras de autorizacao.
+                .authorizeHttpRequests(authorize -> {
 
-                // Prepara a validacao de tokens JWT.
-                // O emissor e as chaves serao configurados
-                // na proxima etapa.
+                    // Swagger publico somente em desenvolvimento.
+                    if (environment.matchesProfiles("dev")) {
+                        authorize.requestMatchers(
+                                "/swagger-ui.html",
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**"
+                        ).permitAll();
+                    }
+
+                    // Todos os demais endpoints protegidos.
+                    authorize.anyRequest().authenticated();
+                })
+
+                // Validacao de JWT.
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(Customizer.withDefaults())
                 );
