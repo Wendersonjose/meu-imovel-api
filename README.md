@@ -1,461 +1,363 @@
+
 # 🏠 Minha Casa API
 
-API REST desenvolvida com Java e Spring Boot para controle e acompanhamento da compra de um imóvel.
+Backend REST para gestão imobiliária e financeira familiar, desenvolvido com Java 17, Spring Boot 4.1.1 e PostgreSQL.
 
-O projeto possui dois objetivos principais:
+O projeto **Minha Casa** nasceu para controlar a aquisição de um imóvel e evoluiu para uma aplicação de gestão financeira compartilhada, permitindo acompanhar receitas, despesas, contas, pagamentos e movimentações relacionadas ao patrimônio familiar.
 
-1. Organizar informações financeiras, cadastrais e documentais relacionadas à aquisição de um imóvel.
-2. Servir como projeto prático de estudo de Java, Spring Boot, PostgreSQL e arquitetura backend.
+Além da finalidade prática, o projeto é utilizado para estudar engenharia de software, arquitetura backend, segurança, persistência de dados e desenvolvimento de APIs REST.
 
----
+> **Status:** desenvolvimento ativo. O módulo de imóveis está implementado. Os módulos financeiros estão em evolução na branch `feature/modulo-financas-casal`. Ainda existem pendências de integração, segurança e homologação antes do uso em produção.
 
-## 🚀 Tecnologias
+## 🎯 Objetivos
 
-- Java 17
-- Spring Boot 4.1.1
-- Maven
-- Spring Web
-- Spring Data JPA
-- Hibernate
-- Bean Validation
-- Flyway
-- PostgreSQL
-- Supabase
-- Lombok
-- IntelliJ IDEA
-- Insomnia
+O sistema está sendo desenvolvido para:
 
-O frontend será desenvolvido futuramente utilizando React e TypeScript.
+- Centralizar informações cadastrais e financeiras de imóveis.
+- Registrar o valor de aquisição, entrada e financiamento.
+- Controlar receitas e despesas familiares.
+- Permitir usuários independentes com informações compartilhadas.
+- Identificar o responsável e o autor de cada movimentação.
+- Registrar pagamentos realizados e valores previstos.
+- Vincular despesas e movimentações financeiras aos imóveis.
+- Acompanhar saldos, orçamentos e indicadores financeiros.
+- Organizar contratos, recibos e comprovantes.
+- Preservar o histórico das movimentações financeiras.
+
+O objetivo arquitetural é manter um único backend, com módulos separados por responsabilidade.
 
 ---
 
-## 📌 Objetivo do sistema
+## 🛠️ Stack tecnológica
 
-A aplicação será utilizada para registrar e acompanhar:
+| Tecnologia | Utilização |
+|---|---|
+| Java 17 | Linguagem principal |
+| Spring Boot 4.1.1 | Framework backend |
+| Spring Web MVC | Endpoints REST |
+| Spring Security | Autenticação e proteção HTTP |
+| OAuth2 Resource Server | Validação de JWT |
+| Supabase Auth | Provedor de identidade |
+| Spring Data JPA | Persistência de entidades |
+| Hibernate | ORM |
+| Spring JDBC | Consultas e operações SQL financeiras |
+| Bean Validation | Validação de DTOs |
+| Flyway | Versionamento do banco de dados |
+| PostgreSQL | Banco de dados relacional |
+| Supabase | Hospedagem do PostgreSQL e autenticação |
+| Lombok | Redução controlada de boilerplate |
+| Maven | Gerenciamento de dependências e build |
+| JUnit 5 / Mockito | Testes automatizados |
+| Springdoc OpenAPI | Documentação da API |
+| Insomnia | Testes manuais de endpoints |
+| IntelliJ IDEA | Ambiente de desenvolvimento |
 
-- dados do imóvel;
-- valor de compra;
-- entrada;
-- financiamento;
-- pagamentos;
-- despesas relacionadas à aquisição;
-- recibos;
-- comprovantes;
-- contratos;
-- documentos;
-- histórico das movimentações.
+### Frontend planejado
 
-O desenvolvimento está sendo realizado de forma incremental, começando pelo domínio de imóvel.
+- React
+- TypeScript
+- Interface responsiva
+- Autenticação integrada ao Supabase
+- Dashboard financeiro
+- Calendário de despesas e pagamentos
+- Gestão de documentos
+- Visualização compartilhada por família
+
+O frontend ainda não faz parte deste repositório.
 
 ---
 
 ## 🏗️ Arquitetura
 
-A aplicação segue a separação:
+A aplicação segue uma arquitetura modular em camadas.
 
 ```text
-Controller
-    ↓
-DTO
-    ↓
-Service
-    ↓
-Repository
-    ↓
-JPA / Hibernate
-    ↓
-PostgreSQL
+                CLIENTE HTTP
+                     |
+                     v
+              Spring Security
+               JWT / OAuth2
+                     |
+                     v
+                 Controller
+                     |
+                     v
+                    DTO
+                     |
+                     v
+                  Service
+                     |
+                     v
+                 Repository
+                     |
+              +------+------+
+              |             |
+              v             v
+          JPA/Hibernate  Spring JDBC
+              |             |
+              +------+------+
+                     |
+                     v
+                 PostgreSQL
+                     |
+                     v
+                  Supabase
 ```
 
 ### Responsabilidades
 
 **Controller**
 
-Responsável pela camada HTTP da aplicação.
-
-Recebe as requisições, delega os casos de uso para o service e devolve as respostas HTTP.
+Gerencia requisições e respostas HTTP, valida os dados recebidos e delega a execução dos casos de uso.
 
 **DTO**
 
-Responsável pelo transporte de dados de entrada e saída da API.
-
-A aplicação utiliza Java `record` sempre que apropriado.
+Transporta dados entre a API e seus consumidores. Os DTOs de entrada e saída são separados, utilizando Java `record` sempre que apropriado.
 
 **Service**
 
-Responsável por coordenar os casos de uso da aplicação.
+Coordena os casos de uso, as regras de negócio, as transações e as verificações de autorização.
 
 **Repository**
 
-Responsável pelo acesso aos dados utilizando Spring Data JPA.
+Concentra o acesso à persistência.
 
-**Componentes de domínio**
+O projeto utiliza diferentes abordagens de persistência:
 
-Regras específicas podem ser delegadas para componentes especializados.
+- Spring Data JPA e Hibernate no domínio de imóveis e nas categorias financeiras.
+- Spring JDBC, com `NamedParameterJdbcTemplate`, em contas e lançamentos financeiros.
+- Consultas SQL nativas em componentes financeiros específicos.
 
-Exemplo:
+**Banco de dados**
 
-```text
-ValidadorCadastroImovel
-```
-
-Esse componente concentra as regras de validação de duplicidade durante o cadastro e a atualização de imóveis.
-
-**JPA / Hibernate**
-
-Responsável pelo mapeamento entre objetos Java e tabelas relacionais.
-
-**PostgreSQL**
-
-Banco de dados utilizado para persistência das informações.
+PostgreSQL, com evolução estrutural controlada exclusivamente por migrations Flyway.
 
 ---
 
-## 📂 Estrutura atual do projeto
+## 📂 Estrutura do projeto
+
+Estrutura resumida da branch de desenvolvimento:
 
 ```text
-src/main/java/com/wenderson/meuimovel
-│
-├── controller
-│   └── ImovelController.java
-│
-├── domain
-│   └── imovel
-│       ├── Imovel.java
-│       ├── ImovelRepository.java
-│       ├── ImovelService.java
-│       ├── ValidadorCadastroImovel.java
-│       ├── ImovelDuplicadoException.java
-│       ├── ImovelNaoEncontradoException.java
-│       ├── DadosCadastroImovel.java
-│       ├── DadosAtualizacaoImovel.java
-│       └── DadosDetalhamentoImovel.java
-│
-├── infra
-│   └── exception
-│       └── TratadorDeErros.java
-│
-└── MeuImovelApiApplication.java
+meu-imovel-api/
+|
+├── docs/
+│   ├── INTEGRACAO_FINANCAS_CASAL.md
+│   └── sql/
+│       └── financas_smoke_test.sql
+|
+├── src/
+│   ├── main/
+│   │   ├── java/com/wenderson/meuimovel/
+│   │   │   |
+│   │   │   ├── controller/
+│   │   │   │   ├── ImovelController.java
+│   │   │   │   ├── CategoriaController.java
+│   │   │   │   ├── ContaController.java
+│   │   │   │   ├── LancamentoController.java
+│   │   │   │   └── ResumoCompetenciaController.java
+│   │   │   |
+│   │   │   ├── domain/
+│   │   │   │   ├── imovel/
+│   │   │   │   │   ├── Imovel.java
+│   │   │   │   │   ├── ImovelRepository.java
+│   │   │   │   │   ├── ImovelService.java
+│   │   │   │   │   ├── ValidadorCadastroImovel.java
+│   │   │   │   │   ├── ImovelDuplicadoException.java
+│   │   │   │   │   ├── ImovelNaoEncontradoException.java
+│   │   │   │   │   └── DTOs de imóvel
+│   │   │   │   |
+│   │   │   │   └── financas/
+│   │   │   │       ├── AutorizacaoFamiliaService.java
+│   │   │   │       ├── MembroFamiliaRepository.java
+│   │   │   │       ├── ResumoCompetenciaService.java
+│   │   │   │       ├── ResumoCompetenciaRepository.java
+│   │   │   │       ├── DadosResumoCompetencia.java
+│   │   │   │       ├── categoria/
+│   │   │   │       ├── conta/
+│   │   │   │       └── lancamento/
+│   │   │   |
+│   │   │   ├── enums/
+│   │   │   │   └── TipoCategoria.java
+│   │   │   |
+│   │   │   ├── infra/
+│   │   │   │   ├── config/
+│   │   │   │   │   └── OpenApiConfig.java
+│   │   │   │   ├── exception/
+│   │   │   │   │   └── TratadorDeErros.java
+│   │   │   │   └── security/
+│   │   │   │       ├── SecurityConfig.java
+│   │   │   │       ├── UsuarioAutenticado.java
+│   │   │   │       └── AutorizacaoFamiliaUsuarioAtual.java
+│   │   │   |
+│   │   │   └── MeuImovelApiApplication.java
+│   │   |
+│   │   └── resources/
+│   │       ├── application.properties
+│   │       └── db/migration/
+│   │           ├── V1__create_table_imovel.sql
+│   │           ├── V2__alter_table_imovel_add_dados_cadastrais.sql
+│   │           ├── V3__add_unique_constraints_imovel.sql
+│   │           ├── V4__create_financas_familia.sql
+│   │           └── V5__views_graficos_financeiros.sql
+│   |
+│   └── test/
+│       └── java/com/wenderson/meuimovel/
+│           └── Testes de imóveis, finanças,
+│               controllers e segurança
+|
+├── pom.xml
+└── README.md
 ```
 
-Os futuros domínios de pagamento, documento e usuário serão adicionados conforme essas funcionalidades forem desenvolvidas.
+A organização por domínio facilita a manutenção e a evolução incremental do backend.
 
 ---
 
 ## 🗄️ Banco de dados
 
-O projeto utiliza PostgreSQL hospedado no Supabase.
+O sistema utiliza PostgreSQL local no ambiente de desenvolvimento e PostgreSQL hospedado no Supabase.
 
-A conexão da aplicação é realizada através do JDBC Session Pooler.
+A conexão com Supabase pode ser realizada pelo JDBC Session Pooler.
 
-As credenciais não ficam armazenadas diretamente no código-fonte.
+### Controle de schema
 
-São utilizadas as variáveis de ambiente:
-
-```text
-DB_URL
-DB_USERNAME
-DB_PASSWORD
-```
-
-O `application.properties` utiliza:
-
-```properties
-spring.datasource.url=${DB_URL}
-spring.datasource.username=${DB_USERNAME}
-spring.datasource.password=${DB_PASSWORD}
-```
-
-Dessa forma, informações sensíveis não precisam ser versionadas no GitHub.
-
----
-
-## 🔄 Controle do schema com Flyway
-
-A estrutura do banco de dados é controlada exclusivamente pelo Flyway.
-
-O Hibernate está configurado com:
+O Flyway é responsável pelas alterações estruturais.
 
 ```properties
 spring.jpa.hibernate.ddl-auto=none
+spring.flyway.enabled=true
 ```
 
-As migrations ficam em:
+O Hibernate não deve criar ou alterar tabelas automaticamente.
+
+### Migrations
+
+| Migration | Responsabilidade |
+|---|---|
+| V1 | Criação da tabela de imóveis |
+| V2 | Ampliação dos dados cadastrais do imóvel |
+| V3 | Restrições de unicidade e prevenção de duplicidades |
+| V4 | Criação do schema financeiro familiar |
+| V5 | Views para relatórios e indicadores financeiros |
+
+As migrations V4 e V5 estão na branch de desenvolvimento e não fazem parte da `main` atual.
+
+### Schema `public`
+
+Contém a tabela principal:
 
 ```text
-src/main/resources/db/migration
+public.imovel
 ```
 
-Migrations implementadas:
+### Schema `financas`
+
+O módulo financeiro possui oito tabelas:
+
+| Tabela | Responsabilidade |
+|---|---|
+| fin_familia | Identificação da família |
+| fin_membro | Usuários vinculados à família |
+| fin_categoria | Categorias de receitas e despesas |
+| fin_conta | Contas financeiras |
+| fin_lancamento | Receitas, despesas e pagamentos |
+| fin_orcamento | Limites mensais de orçamento |
+| fin_transferencia | Transferências entre contas |
+| fin_imovel_familia | Associação entre imóveis e famílias |
+
+O schema financeiro foi modelado com chaves estrangeiras e restrições para preservar a integridade dos dados entre famílias.
+
+### Views financeiras
+
+A migration V5 disponibiliza:
 
 ```text
-V1__create_table_imovel.sql
-V2__alter_table_imovel_add_dados_cadastrais.sql
-V3__add_unique_constraints_imovel.sql
+fin_vw_resumo_competencia
+fin_vw_fluxo_caixa_diario
+fin_vw_despesas_categoria_mes
+fin_vw_gastos_responsavel_mes
+fin_vw_orcamento_categoria_mes
 ```
 
-### V1
+Essas views permitem construir indicadores sem misturar:
 
-Criação inicial da tabela `imovel`.
+- Valores previstos e efetivados.
+- Competência e data real do pagamento.
+- Receitas e transferências internas.
+- Saldo bancário e orçamento disponível.
 
-### V2
-
-Inclusão dos dados cadastrais do imóvel e adequação dos campos de auditoria para `TIMESTAMPTZ`.
-
-### V3
-
-Inclusão de constraints de unicidade para impedir cadastros duplicados utilizando:
-
-- CNM;
-- cartório + matrícula;
-- cidade + UF + cadastro municipal.
+As views não substituem a autorização na camada de aplicação.
 
 ---
 
-## 🏠 Domínio de imóvel
+## 🏠 Módulo de imóveis
 
-A entidade `Imovel` representa os dados principais de um imóvel.
+O domínio de imóveis está implementado e permite:
 
-Entre os campos existentes estão:
+- Cadastrar imóveis.
+- Consultar um imóvel por ID.
+- Listar imóveis.
+- Atualizar dados parcialmente.
+- Validar identificadores únicos.
+- Evitar duplicidades cadastrais.
+- Tratar recursos não encontrados.
 
-- descrição;
-- tipo do imóvel;
-- matrícula;
-- CNM;
-- cartório;
-- cadastro municipal;
-- endereço;
-- lote;
-- quadra;
-- loteamento;
-- área do terreno;
-- área construída;
-- habite-se;
-- valor do imóvel;
-- valor financiado;
-- valor da entrada;
-- data da compra;
-- observações;
-- data de criação;
-- data de atualização.
+### Dados disponíveis
 
-Para valores monetários e áreas é utilizado:
+A entidade `Imovel` contempla:
 
-```java
-BigDecimal
-```
+- Descrição e tipo do imóvel.
+- Matrícula e CNM.
+- Cartório de registro.
+- Cadastro municipal.
+- Endereço.
+- Lote, quadra e loteamento.
+- Área do terreno e área construída.
+- Habite-se.
+- Valor de aquisição.
+- Valor financiado.
+- Valor de entrada.
+- Data da compra.
+- Observações.
+- Campos de auditoria.
 
-Para datas sem horário:
+Os valores monetários utilizam `BigDecimal`.
 
-```java
-LocalDate
-```
+As datas cadastrais utilizam `LocalDate`.
 
-Para os campos de auditoria:
+Os registros de auditoria utilizam `Instant`.
 
-```java
-Instant
-```
+### Proteção contra duplicidade
 
----
+A aplicação valida:
 
-## ✨ Lombok
+1. CNM.
+2. Combinação de cartório e matrícula.
+3. Combinação de cidade, UF e cadastro municipal.
 
-A entidade `Imovel` utiliza Lombok para reduzir código repetitivo.
+As validações são executadas pela aplicação e reforçadas por constraints no PostgreSQL.
 
-Atualmente são utilizadas:
+### Endpoints
 
-```java
-@Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-```
+| Método | Endpoint | Operação |
+|---|---|---|
+| POST | `/imoveis` | Cadastrar imóvel |
+| GET | `/imoveis` | Listar imóveis |
+| GET | `/imoveis/{id}` | Consultar imóvel |
+| PATCH | `/imoveis/{id}` | Atualizar parcialmente |
 
-O `@Getter` gera automaticamente os métodos de leitura dos atributos.
-
-O `@NoArgsConstructor` gera o construtor sem argumentos necessário para o funcionamento do JPA/Hibernate.
-
-Não é utilizado `@Data`, pois não queremos gerar setters públicos indiscriminadamente para a entidade.
-
-As alterações da entidade são realizadas através de métodos de domínio.
-
-Exemplo:
-
-```java
-imovel.atualizar(dados);
-```
-
----
-
-## 📦 DTOs
-
-As entidades JPA não são expostas diretamente pela API.
-
-Atualmente existem:
-
-```text
-DadosCadastroImovel
-DadosAtualizacaoImovel
-DadosDetalhamentoImovel
-```
-
-Os DTOs são implementados utilizando Java `record`.
-
-### DadosCadastroImovel
-
-Utilizado como DTO de entrada no cadastro de um imóvel.
-
-```text
-POST /imoveis
-```
-
-### DadosAtualizacaoImovel
-
-Utilizado como DTO de entrada na atualização parcial de um imóvel.
-
-```text
-PATCH /imoveis/{id}
-```
-
-Os campos são opcionais porque apenas os dados enviados devem ser alterados.
-
-### DadosDetalhamentoImovel
-
-Utilizado como DTO de saída da API.
-
-O fluxo de saída segue:
-
-```text
-Imovel
-    ↓
-DadosDetalhamentoImovel
-    ↓
-JSON
-```
-
----
-
-## ✅ Validação de duplicidade
-
-Antes de persistir ou atualizar determinadas informações de um imóvel, o sistema executa validações através do componente:
-
-```text
-ValidadorCadastroImovel
-```
-
-São verificadas três formas de identificação:
-
-```text
-CNM
-
-Cartório + Matrícula
-
-Cidade + UF + Cadastro Municipal
-```
-
-Caso seja encontrada uma duplicidade, é lançada:
-
-```text
-ImovelDuplicadoException
-```
-
-O tratamento global converte essa exceção em:
-
-```http
-409 Conflict
-```
-
-Exemplo:
-
-```json
-{
-  "mensagem": "Já existe um imóvel cadastrado com este CNM."
-}
-```
-
-Além da validação feita pela aplicação, o PostgreSQL também possui constraints `UNIQUE`, garantindo uma segunda camada de proteção da integridade dos dados.
-
----
-
-## 🔄 Validação durante atualização
-
-Durante uma atualização, o imóvel que está sendo alterado não pode ser considerado uma duplicidade dele mesmo.
-
-Por exemplo, se o imóvel de ID `1` já possui determinado CNM, enviar novamente esse mesmo CNM no `PATCH` deve ser permitido.
-
-Para isso, o repository possui consultas que desconsideram o ID atual.
-
-Exemplo:
-
-```java
-existsByCnmAndIdNot(cnm, id)
-```
-
-O mesmo princípio é utilizado para:
-
-```text
-cartório + matrícula
-
-cidade + UF + cadastro municipal
-```
-
-Assim, a validação procura somente outro imóvel com os mesmos identificadores.
-
----
-
-## 🔎 Imóvel não encontrado
-
-Ao consultar ou atualizar um imóvel por ID, o service utiliza a busca pelo repository.
-
-```java
-repository.findById(id)
-```
-
-Caso o imóvel não exista, é lançada:
-
-```text
-ImovelNaoEncontradoException
-```
-
-O tratamento global converte essa exceção em:
-
-```http
-404 Not Found
-```
-
-Exemplo:
-
-```json
-{
-  "mensagem": "Imóvel não encontrado com o id: 999"
-}
-```
-
----
-
-## 🌐 Endpoints
-
-### Resumo
-
-| Método | Endpoint | Descrição | Sucesso |
-|---|---|---|---|
-| POST | `/imoveis` | Cadastrar imóvel | `201 Created` |
-| GET | `/imoveis` | Listar imóveis | `200 OK` |
-| GET | `/imoveis/{id}` | Detalhar imóvel | `200 OK` |
-| PATCH | `/imoveis/{id}` | Atualizar parcialmente um imóvel | `200 OK` |
-
----
-
-## ➕ Cadastrar imóvel
+### Exemplo de cadastro
 
 ```http
 POST /imoveis
+Content-Type: application/json
+Authorization: Bearer SEU_TOKEN
 ```
-
-Exemplo de requisição utilizando dados fictícios:
 
 ```json
 {
-  "descricao": "Imóvel residencial",
+  "descricao": "Imóvel residencial de exemplo",
   "tipoImovel": "Residencial unifamiliar",
   "matricula": "12345",
   "cnm": "000000.0.0000000-00",
@@ -476,371 +378,808 @@ Exemplo de requisição utilizando dados fictícios:
   "valorFinanciado": 320000.00,
   "valorEntrada": 80000.00,
   "dataCompra": "2026-10-03",
-  "observacao": "Exemplo fictício para documentação da API."
+  "observacao": "Cadastro fictício para documentação."
 }
 ```
 
-Resposta de sucesso:
+Em caso de sucesso, retorna `201 Created`.
 
-```http
-201 Created
-```
+A operação também devolve o cabeçalho `Location`.
 
-A resposta também possui o header `Location` apontando para o recurso criado.
+Em caso de duplicidade, retorna `409 Conflict`.
 
-Exemplo:
+> O Bearer Token é exigido na branch financeira. Na `main` atual, a configuração de segurança ainda não foi integrada.
+
+---
+
+## 👨‍👩‍👧 Módulo financeiro familiar
+
+O módulo financeiro foi projetado para dois ou mais usuários de uma mesma família.
+
+Cada usuário possui identidade independente, enquanto as informações financeiras são associadas à família.
+
+### Regras principais
+
+- Cada pessoa pode utilizar seu próprio login.
+- Usuários ativos da mesma família podem acessar os dados financeiros compartilhados.
+- A autoria de cada lançamento é determinada pelo JWT.
+- O responsável financeiro é registrado separadamente do autor.
+- Contas, categorias e lançamentos pertencem a uma família.
+- Movimentações não podem referenciar contas ou categorias de outra família.
+- Despesas podem ser associadas a imóveis previamente vinculados.
+- Transferências entre contas não devem ser contabilizadas como receitas ou despesas.
+
+A estrutura de membros prevê os papéis `ADMIN` e `MEMBRO`.
+
+A existência desses papéis no banco não significa que todas as permissões administrativas específicas já estejam implementadas na API.
+
+---
+
+## 🗂️ Categorias financeiras
+
+O CRUD de categorias está implementado.
+
+### Tipos de categoria
 
 ```text
-/imoveis/1
+RECEITA
+DESPESA
 ```
 
-Em caso de duplicidade:
+### Funcionalidades
 
-```http
-409 Conflict
+- Cadastro de categorias.
+- Listagem de categorias ativas.
+- Consulta por ID.
+- Alteração de nome.
+- Desativação lógica.
+- Validação de categorias duplicadas.
+- Verificação de vínculo ativo com a família.
+
+O sistema não exclui fisicamente uma categoria por meio do endpoint DELETE.
+
+Em vez disso, altera o indicador `ativa` para `false`.
+
+### Endpoints
+
+Prefixo:
+
+```text
+/familias/{familiaId}/financas/categorias
 ```
 
----
+| Método | Rota | Operação |
+|---|---|---|
+| POST | `/` | Cadastrar |
+| GET | `/` | Listar ativas |
+| GET | `/{id}` | Consultar |
+| PUT | `/{id}` | Atualizar |
+| DELETE | `/{id}` | Desativar |
 
-## 📋 Listar imóveis
-
-```http
-GET /imoveis
-```
-
-Retorna uma lista contendo os imóveis cadastrados.
-
-Resposta de sucesso:
-
-```http
-200 OK
-```
-
-Exemplo simplificado:
-
-```json
-[
-  {
-    "id": 1,
-    "descricao": "Imóvel residencial",
-    "tipoImovel": "Residencial unifamiliar",
-    "cidade": "Cidade Exemplo",
-    "uf": "MG",
-    "valorImovel": 400000.00
-  }
-]
-```
-
-A API retorna o DTO completo de detalhamento para cada imóvel.
-
----
-
-## 🔍 Detalhar imóvel por ID
-
-```http
-GET /imoveis/{id}
-```
-
-Exemplo:
-
-```http
-GET /imoveis/1
-```
-
-Resposta quando encontrado:
-
-```http
-200 OK
-```
-
-Caso não exista:
-
-```http
-404 Not Found
-```
-
-Exemplo:
+### Exemplo
 
 ```json
 {
-  "mensagem": "Imóvel não encontrado com o id: 999"
+  "nome": "Despesas cartorárias",
+  "tipo": "DESPESA"
 }
 ```
 
+O CRUD foi validado manualmente com Insomnia durante o desenvolvimento.
+
 ---
 
-## ✏️ Atualizar imóvel por ID
+## 🏦 Contas financeiras
 
-```http
-PATCH /imoveis/{id}
+O backend possui suporte inicial para cadastro e listagem de contas financeiras.
+
+### Tipos disponíveis
+
+```text
+CORRENTE
+POUPANCA
+CARTEIRA
+INVESTIMENTO
+OUTRA
 ```
 
-O endpoint permite atualizar parcialmente os dados de um imóvel.
+### Campos
 
-Somente os campos enviados na requisição são alterados.
+- Nome da conta.
+- Tipo.
+- Saldo inicial.
+- Data do saldo inicial.
+- Usuário titular.
+- Família.
+- Situação de atividade.
 
-Exemplo:
+O saldo inicial representa o valor informado no início do acompanhamento.
 
-```http
-PATCH /imoveis/1
+Ele não deve ser confundido com um saldo bancário atualizado automaticamente.
+
+### Endpoints
+
+Prefixo:
+
+```text
+/familias/{familiaId}/financas/contas
 ```
 
-Body:
+| Método | Rota | Operação |
+|---|---|---|
+| POST | `/` | Cadastrar conta |
+| GET | `/` | Listar contas ativas |
+
+### Exemplo
 
 ```json
 {
-  "observacao": "Contrato assinado."
+  "nome": "Conta principal",
+  "tipo": "CORRENTE",
+  "saldoInicial": 0.00,
+  "dataSaldoInicial": "2026-11-01"
 }
 ```
 
-Resposta de sucesso:
+A implementação atual utiliza `NamedParameterJdbcTemplate` para acessar o banco de dados.
+
+Ainda não existe CRUD completo de contas.
+
+---
+
+## 💰 Lançamentos financeiros
+
+O módulo de lançamentos permite registrar receitas e despesas vinculadas à família.
+
+### Informações registradas
+
+- Família.
+- Autor.
+- Responsável financeiro.
+- Conta.
+- Categoria.
+- Tipo.
+- Descrição.
+- Valor.
+- Competência.
+- Vencimento.
+- Data da efetivação.
+- Status.
+- Imóvel vinculado, quando aplicável.
+- Observações.
+- Datas de criação e atualização.
+
+### Status
+
+```text
+PREVISTO
+EFETIVADO
+CANCELADO
+```
+
+**PREVISTO:** movimentação planejada ou ainda não efetivada.
+
+**EFETIVADO:** movimentação realizada, com data de efetivação.
+
+**CANCELADO:** movimentação cancelada, que não pode ser efetivada diretamente pelo endpoint de pagamento.
+
+### Regras de validação
+
+- O usuário precisa ter acesso à família.
+- A conta informada deve estar ativa e pertencer à família.
+- A categoria deve estar ativa e corresponder ao tipo da movimentação.
+- O imóvel, quando informado, precisa estar vinculado à família.
+- Lançamentos efetivados exigem data de efetivação.
+- Lançamentos previstos ou cancelados não podem possuir data de efetivação.
+- O autor é extraído do usuário autenticado.
+
+### Endpoints
+
+Prefixo:
+
+```text
+/familias/{familiaId}/financas/lancamentos
+```
+
+| Método | Rota | Operação |
+|---|---|---|
+| POST | `/` | Cadastrar lançamento |
+| GET | `/` | Listar lançamentos |
+| GET | `/{id}` | Consultar lançamento |
+| PUT | `/{id}` | Atualizar lançamento |
+| PATCH | `/{id}/pagar` | Registrar pagamento |
+
+### Filtros de listagem
+
+O endpoint GET aceita filtros opcionais:
 
 ```http
-200 OK
+GET /familias/{familiaId}/financas/lancamentos?mes=2026-11
 ```
 
-A atualização utiliza o DTO:
-
-```text
-DadosAtualizacaoImovel
-```
-
-O service primeiro localiza o imóvel:
-
-```java
-var imovel = buscarPorId(id);
-```
-
-Depois valida possíveis duplicidades:
-
-```java
-validador.validarAtualizacao(imovel, dados);
-```
-
-Por fim, delega a alteração para a própria entidade:
-
-```java
-imovel.atualizar(dados);
-```
-
-O método de domínio divide as alterações em grupos:
-
-```text
-dados cadastrais
-endereço
-características do imóvel
-dados financeiros
-```
-
-Como o objeto recuperado pelo JPA permanece gerenciado dentro da transação, o Hibernate identifica as alterações realizadas e executa o `UPDATE` através do mecanismo de dirty checking.
-
-Não é necessário chamar explicitamente:
-
-```java
-repository.save(imovel);
-```
-
-para essa atualização.
-
-O campo:
-
-```text
-updatedAt
-```
-
-é atualizado automaticamente pelo Hibernate através de:
-
-```java
-@UpdateTimestamp
-```
-
-Caso o imóvel informado não exista:
+Também permite filtrar pelo imóvel:
 
 ```http
-404 Not Found
+GET /familias/{familiaId}/financas/lancamentos?imovelId=1
+```
+
+Os filtros podem ser combinados.
+
+O parâmetro `mes` utiliza o formato `AAAA-MM`.
+
+A implementação atual limita a listagem a 500 registros. Ainda não há paginação completa.
+
+### Exemplo de lançamento
+
+```http
+POST /familias/{familiaId}/financas/lancamentos
+Content-Type: application/json
+Authorization: Bearer SEU_TOKEN
+```
+
+```json
+{
+  "contaId": "UUID_DA_CONTA",
+  "categoriaId": "UUID_DA_CATEGORIA",
+  "tipo": "DESPESA",
+  "descricao": "Emolumentos cartorários",
+  "valor": 250.00,
+  "competencia": "2026-11-01",
+  "vencimento": "2026-11-15",
+  "status": "PREVISTO",
+  "efetivadoEm": null,
+  "imovelId": null,
+  "observacao": "Exemplo de despesa relacionada à aquisição."
+}
+```
+
+Os identificadores devem ser substituídos por UUIDs existentes e autorizados.
+
+O campo `imovelId` pode receber um ID válido de imóvel vinculado à família.
+
+### Registrar pagamento
+
+```http
+PATCH /familias/{familiaId}/financas/lancamentos/{id}/pagar
+```
+
+```json
+{
+  "dataPagamento": "2026-11-15"
+}
+```
+
+Essa operação altera o lançamento para `EFETIVADO` e registra a data informada.
+
+### Estado da implementação
+
+Os controllers, services, DTOs e repositories foram incorporados à branch de desenvolvimento.
+
+Existem testes unitários de regras de autorização e validação.
+
+A homologação completa com JWT real, PostgreSQL e operações HTTP deve ser concluída antes do uso em produção.
+
+---
+
+## 📊 Resumos e indicadores financeiros
+
+A API disponibiliza uma consulta de resumo por competência.
+
+```http
+GET /familias/{familiaId}/financas/resumo
+```
+
+O endpoint retorna registros contendo:
+
+- Família.
+- Mês de referência.
+- Receitas efetivadas.
+- Despesas efetivadas.
+- Receitas previstas.
+- Despesas previstas.
+
+O acesso passa pela verificação do vínculo ativo entre usuário e família.
+
+As outras views financeiras já estão disponíveis na estrutura SQL, mas ainda não possuem todos os endpoints de relatórios correspondentes.
+
+### Indicadores planejados
+
+- Entradas e saídas por período.
+- Saldo das contas.
+- Despesas por categoria.
+- Gastos por responsável.
+- Despesas previstas e realizadas.
+- Orçamento utilizado e disponível.
+- Evolução financeira mensal.
+- Custos relacionados à aquisição do imóvel.
+
+---
+
+## 🔐 Autenticação e segurança
+
+A branch de desenvolvimento utiliza Spring Security com OAuth2 Resource Server.
+
+A autenticação foi estruturada para aceitar JWTs emitidos pelo Supabase Auth.
+
+### Configuração
+
+O backend utiliza:
+
+```properties
+spring.security.oauth2.resourceserver.jwt.issuer-uri=${SUPABASE_URL}/auth/v1
+
+spring.security.oauth2.resourceserver.jwt.jwk-set-uri=${SUPABASE_URL}/auth/v1/.well-known/jwks.json
+
+spring.security.oauth2.resourceserver.jwt.jws-algorithms=ES256
+
+spring.security.oauth2.resourceserver.jwt.audiences=authenticated
+```
+
+### Regras
+
+- API stateless.
+- Autenticação por Bearer Token.
+- Validação da assinatura JWT.
+- Validação do emissor e da audiência.
+- Identificação do usuário pelo claim `sub`.
+- Verificação de vínculo familiar nos serviços financeiros.
+- Bloqueio de acesso financeiro quando o usuário não pertence à família.
+
+### Ponto de atenção
+
+A autenticação não substitui a autorização por recurso.
+
+**Pendência de segurança:** o `ImovelController` ainda utiliza operações globais de cadastro, consulta, listagem e atualização. A proteção por JWT não impede, por si só, que um usuário autenticado consulte ou altere imóveis que não lhe pertencem.
+
+Antes de publicar o sistema para múltiplos usuários, o acesso aos imóveis deverá ser limitado conforme sua associação familiar e a identidade autenticada.
+
+O schema `financas` também não deve ser exposto diretamente pela Data API do Supabase.
+
+---
+
+## ⚙️ Configuração de ambiente
+
+O sistema utiliza variáveis de ambiente para evitar credenciais sensíveis no repositório.
+
+### Variáveis necessárias
+
+```text
+DB_URL
+DB_USERNAME
+DB_PASSWORD
+SUPABASE_URL
+```
+
+### Exemplo de configuração
+
+```properties
+spring.datasource.url=${DB_URL}
+spring.datasource.username=${DB_USERNAME}
+spring.datasource.password=${DB_PASSWORD}
+
+spring.jpa.hibernate.ddl-auto=none
+
+spring.flyway.enabled=true
+```
+
+A variável `SUPABASE_URL` deve conter a URL base do projeto Supabase, sem o sufixo `/auth/v1`.
+
+### Segurança
+
+Não armazenar no Git:
+
+- Senhas de banco de dados.
+- Tokens de autenticação.
+- Chaves privadas.
+- Credenciais de serviços externos.
+- Arquivos `.env` com dados reais.
+
+---
+
+## ▶️ Executando a aplicação
+
+### Pré-requisitos
+
+- JDK 17.
+- Maven compatível com o projeto.
+- PostgreSQL disponível.
+- Banco com as permissões necessárias.
+- Configuração das variáveis de ambiente.
+- Acesso às chaves públicas do Supabase Auth.
+
+### Clonar o repositório
+
+```bash
+git clone https://github.com/Wendersonjose/meu-imovel-api.git
+```
+
+```bash
+cd meu-imovel-api
+```
+
+### Acessar a branch financeira
+
+```bash
+git checkout feature/modulo-financas-casal
+```
+
+### Compilar e testar
+
+```bash
+mvn clean test
+```
+
+### Iniciar a aplicação
+
+```bash
+mvn spring-boot:run
+```
+
+Com a configuração padrão, a API utiliza a porta 8080.
+
+```text
+http://localhost:8080
+```
+
+Durante a inicialização, o Flyway valida e aplica as migrations pendentes no banco configurado.
+
+**Atenção:** confirmar o valor de `DB_URL` antes de executar. Evitar aplicar migrations em um banco de produção durante testes de desenvolvimento.
+
+### Testar endpoints
+
+As rotas protegidas exigem:
+
+```http
+Authorization: Bearer SEU_TOKEN_JWT
+```
+
+O token deve ser emitido pelo provedor Supabase Auth configurado para o projeto.
+
+A API atua como Resource Server e não implementa um endpoint próprio de login.
+
+---
+
+## 📖 Swagger e OpenAPI
+
+A dependência Springdoc está presente no projeto.
+
+Existe configuração OpenAPI específica para o perfil `dev`.
+
+Entretanto, as propriedades atuais desabilitam a documentação por padrão:
+
+```properties
+springdoc.api-docs.enabled=false
+springdoc.swagger-ui.enabled=false
+```
+
+Para disponibilizar a documentação em desenvolvimento, é necessário habilitar essas propriedades no ambiente apropriado.
+
+O Spring Security permite acesso público às rotas da documentação somente quando o perfil `dev` está ativo.
+
+Não habilitar o Swagger publicamente em produção sem uma revisão de segurança.
+
+---
+
+## 🧪 Estratégia de testes
+
+O projeto utiliza:
+
+- JUnit 5.
+- Mockito.
+- Spring Security Test.
+- Testes de controllers.
+- Testes de serviços.
+- Testes de integração de persistência.
+- Testes de migrations.
+- Insomnia para validação HTTP.
+
+### Cenários já trabalhados
+
+**Imóveis**
+
+- Cadastro.
+- Listagem.
+- Consulta por ID.
+- Atualização parcial.
+- Tratamento de imóvel inexistente.
+- Verificação de duplicidade.
+
+**Segurança**
+
+- Autenticação JWT.
+- Requisições sem autenticação.
+- Extração da identidade autenticada.
+- Verificação de vínculo familiar.
+- Negação de acesso sem permissão.
+
+**Categorias financeiras**
+
+- Cadastro.
+- Listagem.
+- Consulta.
+- Atualização.
+- Desativação lógica.
+- Prevenção de duplicidade.
+
+**Lançamentos financeiros**
+
+- Negação de acesso sem vínculo familiar.
+- Rejeição de conta inexistente.
+- Rejeição de imóvel não vinculado.
+- Rejeição de lançamento efetivado sem data.
+
+O teste unitário `LancamentoServiceTest` possui quatro cenários implementados.
+
+### Validação pendente
+
+Ainda é necessário consolidar a execução da suíte completa e homologar os fluxos de contas e lançamentos com requisições HTTP reais e JWT válido.
+
+A presença dos testes no repositório não deve ser interpretada como garantia de aprovação de todos os testes em qualquer ambiente.
+
+### Executar testes
+
+```bash
+mvn clean test
 ```
 
 ---
 
-## 🧪 Testes realizados no PATCH
+## 📁 Módulo de documentos — planejado
 
-O endpoint de atualização foi testado manualmente através do Insomnia.
+O próximo módulo funcional será destinado à gestão de documentos relacionados à aquisição do imóvel.
 
-Foram verificados os seguintes cenários:
+### Requisitos
 
-```text
-alteração parcial de observação
-→ 200 OK
+- Upload de arquivos.
+- Associação a um imóvel.
+- Associação a uma despesa ou movimentação.
+- Identificação do usuário responsável pelo envio.
+- Registro da data do upload.
+- Classificação do documento.
+- Download controlado por autorização.
+- Organização por categoria documental.
 
-manutenção do mesmo CNM do próprio imóvel
-→ 200 OK
+### Documentos previstos
 
-manutenção da mesma matrícula + cartório
-→ 200 OK
+- Contratos.
+- Matrícula e certidões.
+- Comprovantes de pagamento.
+- Recibos.
+- Documentos cartorários.
+- Documentação do financiamento.
+- Extratos e comprovantes de FGTS.
+- Outros documentos relacionados à aquisição.
 
-manutenção do mesmo cadastro municipal
-→ 200 OK
+### Diretriz de arquitetura
 
-tentativa de atualizar imóvel inexistente
-→ 404 Not Found
-```
+Os arquivos deverão utilizar armazenamento apropriado, com acesso privado.
 
-Os testes confirmaram que a validação de atualização não considera o próprio imóvel como duplicado.
+O PostgreSQL deverá manter os metadados e os vínculos dos documentos.
 
----
+As operações de upload e download precisam validar a identidade do usuário e sua autorização de acesso ao imóvel ou lançamento correspondente.
 
-## ⚠️ Tratamento de erros
-
-O tratamento global de exceções está localizado em:
-
-```text
-src/main/java/com/wenderson/meuimovel/infra/exception
-```
-
-Classe responsável:
-
-```text
-TratadorDeErros.java
-```
-
-Atualmente são tratados:
-
-```text
-ImovelDuplicadoException
-→ 409 Conflict
-
-ImovelNaoEncontradoException
-→ 404 Not Found
-```
-
-Esse modelo evita concentrar tratamento de exceções dentro dos controllers.
+**Status:** não implementado.
 
 ---
 
-## 🔐 Segurança das configurações
+## 🖥️ Frontend — planejado
 
-Credenciais, senhas, tokens, certificados e outras informações sensíveis não devem ser versionados.
+Será desenvolvida uma aplicação web unificada para acesso pelo computador e celular.
 
-O projeto utiliza variáveis de ambiente para as configurações do banco.
+### Tecnologias previstas
 
-O `.gitignore` também protege arquivos locais como:
+- React.
+- TypeScript.
+- Integração REST.
+- Gerenciamento de autenticação.
+- Componentização.
+- Gráficos financeiros responsivos.
+- Interface adaptada para desktop e mobile.
 
-```text
-.env
-.env.*
-*.pem
-*.key
-*.p12
-*.pfx
-*.jks
-*.keystore
-```
+### Telas planejadas
 
-As credenciais do PostgreSQL/Supabase não ficam diretamente no `application.properties`.
+1. Autenticação.
+2. Dashboard principal.
+3. Cadastro e detalhamento de imóveis.
+4. Gestão financeira familiar.
+5. Contas e saldos.
+6. Receitas e despesas.
+7. Calendário financeiro.
+8. Pagamentos e comprovantes.
+9. Documentos.
+10. Relatórios.
+11. Configurações de usuário e família.
 
----
+A interface deverá possuir identidade visual própria, componentes reutilizáveis e fluxos de navegação consistentes.
 
-## 📐 Decisões de arquitetura
+A referência funcional do módulo financeiro é o NossaGrana, com adaptação de conceitos e gráficos ao sistema Minha Casa, respeitando as licenças de software aplicáveis.
 
-O projeto segue as seguintes regras:
-
-- DTO de entrada separado de DTO de saída;
-- uso de `record` para DTOs quando apropriado;
-- entidades JPA não são expostas diretamente pela API;
-- Lombok utilizado apenas para reduzir boilerplate controlado;
-- setters públicos indiscriminados são evitados;
-- alterações da entidade são feitas através de métodos de domínio;
-- injeção de dependência por construtor;
-- controllers concentram responsabilidades HTTP;
-- services coordenam os casos de uso;
-- repositories concentram persistência;
-- regras específicas podem ser delegadas a componentes especializados;
-- tratamento de exceções é centralizado;
-- schema é controlado pelo Flyway;
-- alterações estruturais são feitas através de migrations;
-- credenciais não são armazenadas diretamente no repositório.
+**Status:** ainda não implementado neste repositório.
 
 ---
 
-## 📊 Evolução futura
+## 🧭 Roadmap
 
-A modelagem está sendo preparada para permitir análises históricas e futura integração com ferramentas como Power BI.
+### Fase 1 — Imóveis
 
-A intenção é manter dados relativamente estáveis do imóvel separados de movimentações como:
+- [x] Criar projeto Spring Boot.
+- [x] Configurar PostgreSQL.
+- [x] Configurar Flyway.
+- [x] Criar entidade de imóvel.
+- [x] Criar DTOs.
+- [x] Implementar cadastro.
+- [x] Implementar listagem.
+- [x] Implementar consulta.
+- [x] Implementar atualização parcial.
+- [x] Validar duplicidades.
+- [x] Implementar tratamento global de erros.
 
-```text
-pagamentos
-despesas
-avaliações
-documentos
-eventos financeiros
-histórico de valores
-```
+### Fase 2 — Finanças familiares
 
-Isso permitirá preservar histórico e construir análises temporais futuramente.
+- [x] Criar schema financeiro.
+- [x] Criar tabelas de famílias e membros.
+- [x] Criar tabelas de contas e categorias.
+- [x] Criar tabela de lançamentos.
+- [x] Criar estrutura de orçamentos.
+- [x] Criar estrutura de transferências.
+- [x] Criar vínculo entre imóvel e família.
+- [x] Criar views financeiras.
+- [x] Integrar Spring Security com validação JWT.
+- [x] Implementar autorização por vínculo familiar nos serviços financeiros existentes.
+- [x] Implementar CRUD de categorias.
+- [x] Implementar cadastro e listagem de contas.
+- [x] Implementar cadastro e consulta de lançamentos.
+- [x] Implementar atualização de lançamentos.
+- [x] Implementar registro de pagamentos.
+- [x] Implementar consulta de resumo por competência.
+- [ ] Concluir homologação integrada dos lançamentos financeiros.
+- [ ] Validar o fluxo de despesas vinculadas ao imóvel, incluindo operações relacionadas ao FGTS.
+- [ ] Revisar controle de acesso por família nos endpoints de imóveis.
+- [ ] Implementar API de gestão de famílias e membros.
+- [ ] Implementar operações de transferências.
+- [ ] Implementar operações de orçamento.
+- [ ] Implementar saldo financeiro consolidado.
+- [ ] Implementar paginação e filtros avançados.
+- [ ] Consolidar testes de integração e segurança.
 
-Esses domínios serão implementados posteriormente.
+### Fase 3 — Documentos
+
+- [ ] Definir modelagem dos documentos.
+- [ ] Criar migration de metadados.
+- [ ] Definir armazenamento privado.
+- [ ] Implementar upload.
+- [ ] Implementar download autenticado.
+- [ ] Vincular documentos aos imóveis.
+- [ ] Vincular documentos aos lançamentos.
+- [ ] Implementar listagem e classificação.
+- [ ] Validar acesso entre famílias.
+
+### Fase 4 — Frontend
+
+- [ ] Criar projeto React com TypeScript.
+- [ ] Definir design system.
+- [ ] Implementar autenticação.
+- [ ] Criar layout responsivo.
+- [ ] Criar dashboard.
+- [ ] Criar gestão de imóveis.
+- [ ] Criar gestão de contas.
+- [ ] Criar formulários financeiros.
+- [ ] Criar calendário financeiro.
+- [ ] Criar gestão de documentos.
+- [ ] Criar gráficos e relatórios.
+- [ ] Integrar frontend à API.
+- [ ] Executar testes de usabilidade.
+
+### Fase 5 — Evolução
+
+- [ ] Despesas recorrentes.
+- [ ] Parcelamentos.
+- [ ] Cartões de crédito e faturas.
+- [ ] Orçamentos mensais.
+- [ ] Relatórios históricos.
+- [ ] Exportação de dados.
+- [ ] Auditoria de alterações.
+- [ ] Observabilidade.
+- [ ] Estratégia de backup e restauração.
+- [ ] Pipeline de CI/CD.
+- [ ] Deploy de produção.
 
 ---
 
-## ✅ Estado atual
+## 🌿 Estratégia de branches
 
-Já implementado:
+### `main`
 
-- projeto Spring Boot;
-- Java 17;
-- conexão PostgreSQL/Supabase;
-- configuração através de variáveis de ambiente;
-- Flyway;
-- migrations V1, V2 e V3;
-- entidade `Imovel`;
-- Lombok na entidade;
-- DTO de cadastro `DadosCadastroImovel`;
-- DTO de atualização `DadosAtualizacaoImovel`;
-- DTO de detalhamento `DadosDetalhamentoImovel`;
-- `ImovelRepository`;
-- `ImovelService`;
-- `ImovelController`;
-- `ValidadorCadastroImovel`;
-- validação de duplicidade;
-- validação de duplicidade durante atualização;
-- validação que desconsidera o próprio imóvel durante atualização;
-- `ImovelDuplicadoException`;
-- `ImovelNaoEncontradoException`;
-- `TratadorDeErros`;
-- `POST /imoveis`;
-- `GET /imoveis`;
-- `GET /imoveis/{id}`;
-- `PATCH /imoveis/{id}`;
-- retorno `201 Created`;
-- retorno `200 OK`;
-- retorno `409 Conflict`;
-- retorno `404 Not Found`;
-- atualização parcial dos dados do imóvel;
-- métodos de domínio para atualização controlada;
-- dirty checking do Hibernate na atualização;
-- atualização automática de `updatedAt`;
-- testes manuais realizados através do Insomnia;
-- compilação Maven validada com `BUILD SUCCESS`.
+Branch principal do projeto.
+
+Atualmente contém a implementação inicial de imóveis, sem a integração das funcionalidades financeiras desenvolvidas posteriormente.
+
+### `feature/modulo-financas-casal`
+
+Branch de desenvolvimento do módulo financeiro familiar.
+
+Contém:
+
+- Flyway V4 e V5.
+- Integração com Spring Security.
+- Validação de JWT Supabase.
+- Autorização financeira por família.
+- Categorias.
+- Contas.
+- Lançamentos.
+- Resumos financeiros.
+- Testes automatizados associados.
+
+### Pull requests
+
+**PR #1 — Estrutura do módulo financeiro**
+
+https://github.com/Wendersonjose/meu-imovel-api/pull/1
+
+Status em 04/11/2026: aberto como rascunho, sem integração à `main`.
+
+**PR #2 — V1 de contas e lançamentos**
+
+https://github.com/Wendersonjose/meu-imovel-api/pull/2
+
+Status em 04/11/2026: integrado à branch `feature/modulo-financas-casal`.
+
+O merge do PR #2 na branch financeira não significa que o módulo foi publicado na `main` ou em produção.
 
 ---
 
-## 🛣️ Próximos passos
+## ⚠️ Pendências prioritárias
 
-O fluxo inicial do domínio de imóvel já possui:
+Antes de considerar a API pronta para produção:
 
-```text
-cadastro
-consulta por ID
-listagem
-atualização parcial
-validação de duplicidade
-tratamento de imóvel não encontrado
-```
+1. Corrigir a autorização de leitura e alteração de imóveis.
+2. Validar JWT real e acesso cruzado entre famílias.
+3. Executar a suíte completa de testes no ambiente configurado.
+4. Homologar cadastro, atualização e pagamento dos lançamentos pelo Insomnia.
+5. Garantir o tratamento correto de movimentações relacionadas ao FGTS, evitando dupla contabilização.
+6. Rever privilégios de banco e exposição do schema financeiro.
+7. Definir o armazenamento seguro de documentos e comprovantes.
+8. Revisar migrações, backups e procedimentos de recuperação.
+9. Integrar as alterações aprovadas à branch principal.
 
-Antes de iniciar os módulos de pagamentos, documentos e demais funcionalidades, ainda serão avaliadas as próximas operações necessárias para concluir o domínio inicial de imóvel.
+---
 
-O desenvolvimento continuará de forma incremental, mantendo a separação entre responsabilidades e evitando avançar para outros domínios antes de finalizar corretamente o fluxo de imóvel.
+## 📐 Princípios de desenvolvimento
+
+O projeto segue as seguintes decisões:
+
+- Separar responsabilidades entre Controller, Service e Repository.
+- Utilizar DTOs específicos para entrada e saída.
+- Preferir `record` para objetos de transporte.
+- Evitar expor entidades JPA diretamente na API.
+- Utilizar `BigDecimal` para operações monetárias.
+- Evitar setters públicos indiscriminados.
+- Usar construtores e métodos de domínio.
+- Aplicar injeção de dependência por construtor.
+- Centralizar o tratamento de exceções.
+- Utilizar validação de entrada com Bean Validation.
+- Manter operações transacionais consistentes.
+- Validar a identidade do usuário no servidor.
+- Impedir acesso financeiro entre famílias diferentes.
+- Controlar alterações estruturais exclusivamente pelo Flyway.
+- Manter credenciais fora do código-fonte.
+- Implementar e testar as funcionalidades incrementalmente.
+
+O desenvolvimento prioriza a compreensão dos conceitos de Java, Spring Boot, banco de dados e arquitetura de software, evitando dependência exclusiva de código gerado automaticamente.
+
+---
+
+## 📌 Estado do desenvolvimento
+
+**Última revisão deste documento:** 04 de novembro de 2026.
+
+O backend possui uma base funcional para cadastro imobiliário e uma primeira versão do módulo financeiro familiar na branch de desenvolvimento.
+
+As próximas prioridades são finalizar a homologação dos lançamentos financeiros, validar as movimentações associadas ao FGTS e iniciar o módulo de documentos.
+
+O frontend React/TypeScript será desenvolvido após a consolidação dos contratos de API necessários.
+
+O sistema permanece em desenvolvimento e não deve ser considerado homologado para uso público ou multiusuário em produção.
 
 ---
 
@@ -848,4 +1187,10 @@ O desenvolvimento continuará de forma incremental, mantendo a separação entre
 
 **Wenderson José da Silva**
 
-Projeto desenvolvido como aplicação prática de estudos em Java, Spring Boot, PostgreSQL e arquitetura de APIs REST.
+Desenvolvedor Full Stack.
+
+Projeto desenvolvido para aplicação prática de engenharia de software, Java, Spring Boot, PostgreSQL, segurança, arquitetura de APIs REST e gestão financeira.
+
+**GitHub:** https://github.com/Wendersonjose
+
+**LinkedIn:** https://www.linkedin.com/in/wenderson-jose
