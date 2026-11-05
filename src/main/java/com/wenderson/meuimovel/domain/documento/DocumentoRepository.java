@@ -170,6 +170,7 @@ public class DocumentoRepository {
                 FROM financas.fin_documento
                 WHERE familia_id = :familiaId
                   AND id = :documentoId
+                  AND excluido_em IS NULL
                 """;
 
         List<DadosDetalhamentoDocumento> documentos =
@@ -184,6 +185,109 @@ public class DocumentoRepository {
 
         return documentos.stream().findFirst();
     }
+
+
+    public Optional<DadosDetalhamentoDocumento> atualizar(
+            UUID familiaId,
+            UUID documentoId,
+            DadosAtualizacaoDocumento dados) {
+
+        String sql = """
+            UPDATE financas.fin_documento
+            SET
+                tipo_documento = :tipoDocumento,
+                descricao = :descricao
+                WHERE familia_id = :familiaId
+                  AND id = :documentoId
+                  AND excluido_em IS NULL
+            RETURNING
+                id,
+                familia_id,
+                autor_usuario_id,
+                imovel_id,
+                lancamento_id,
+                tipo_documento,
+                descricao,
+                nome_original,
+                mime_type,
+                tamanho_bytes,
+                criado_em
+            """;
+
+        var parametros = new MapSqlParameterSource()
+                .addValue("familiaId", familiaId)
+                .addValue("documentoId", documentoId)
+                .addValue("tipoDocumento", dados.tipoDocumento())
+                .addValue("descricao", dados.descricao().trim());
+
+        return jdbc.query(
+                sql,
+                parametros,
+                this::mapear
+        ).stream().findFirst();
+    }
+
+
+
+    public boolean excluir(
+            UUID familiaId,
+            UUID documentoId,
+            UUID usuarioId) {
+
+        String sql = """
+            UPDATE financas.fin_documento
+            SET
+                excluido_em = NOW(),
+                excluido_por_usuario_id = :usuarioId
+            WHERE familia_id = :familiaId
+              AND id = :documentoId
+              AND excluido_em IS NULL
+            """;
+
+        int linhasAfetadas = jdbc.update(
+                sql,
+                Map.of(
+                        "familiaId", familiaId,
+                        "documentoId", documentoId,
+                        "usuarioId", usuarioId
+                )
+        );
+
+        return linhasAfetadas == 1;
+    }
+
+    public List<DadosDetalhamentoDocumento> listar(
+            UUID familiaId) {
+
+        String sql = """
+            SELECT
+                id,
+                familia_id,
+                autor_usuario_id,
+                imovel_id,
+                lancamento_id,
+                tipo_documento,
+                descricao,
+                nome_original,
+                mime_type,
+                tamanho_bytes,
+                criado_em
+            FROM financas.fin_documento
+            WHERE familia_id = :familiaId
+              AND excluido_em IS NULL
+            ORDER BY criado_em DESC, id DESC
+            LIMIT 100
+            """;
+
+        return jdbc.query(
+                sql,
+                Map.of("familiaId", familiaId),
+                this::mapear
+        );
+    }
+
+
+
 
     private DadosDetalhamentoDocumento mapear(
             ResultSet rs,

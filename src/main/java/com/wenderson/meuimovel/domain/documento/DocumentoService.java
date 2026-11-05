@@ -10,6 +10,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
 import java.util.UUID;
+import java.util.List;
 
 @Service
 public class DocumentoService {
@@ -194,6 +195,121 @@ public class DocumentoService {
         }
 
     }
+
+
+    public DadosDetalhamentoDocumento buscar(
+            UUID familiaId,
+            UUID usuarioId,
+            UUID documentoId) {
+
+        // Verifica se o usuário pertence à família.
+        autorizacao.verificarAcesso(familiaId, usuarioId);
+
+        // Consulta o documento no banco de dados.
+        return repository.buscar(familiaId, documentoId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Documento não encontrado"
+                ));
+    }
+
+
+    public byte[] baixar(
+            UUID familiaId,
+            UUID usuarioId,
+            UUID documentoId) {
+
+        // Verifica se o usuário pertence à família
+        // e se o documento existe e está ativo.
+        DadosDetalhamentoDocumento documento = buscar(
+                familiaId,
+                usuarioId,
+                documentoId
+        );
+
+        // Recupera o arquivo do Supabase Storage.
+        return storageClient.baixar(
+                familiaId,
+                documentoId,
+                documento.mimeType()
+        );
+    }
+
+
+
+    public List<DadosDetalhamentoDocumento> listar(
+            UUID familiaId,
+            UUID usuarioId) {
+
+        // Verifica se o usuário possui acesso à família.
+        autorizacao.verificarAcesso(familiaId, usuarioId);
+
+        // Busca os documentos ativos no PostgreSQL.
+        return repository.listar(familiaId);
+    }
+
+
+
+    public DadosDetalhamentoDocumento atualizar(
+            UUID familiaId,
+            UUID usuarioId,
+            UUID documentoId,
+            DadosAtualizacaoDocumento dados) {
+
+        // Verifica se o usuário pertence à família.
+        autorizacao.verificarAcesso(familiaId, usuarioId);
+
+        // Valida as informações recebidas.
+        if (dados == null ||
+                dados.tipoDocumento() == null ||
+                !dados.tipoDocumento().matches("[A-Z][A-Z0-9_]{0,39}") ||
+                dados.descricao() == null ||
+                dados.descricao().isBlank() ||
+                dados.descricao().length() > 255) {
+
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Dados de atualização inválidos"
+            );
+        }
+
+        // Atualiza os metadados no PostgreSQL.
+        return repository.atualizar(
+                familiaId,
+                documentoId,
+                dados
+        ).orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.NOT_FOUND,
+                "Documento não encontrado"
+        ));
+    }
+
+
+    public void excluir(
+            UUID familiaId,
+            UUID usuarioId,
+            UUID documentoId) {
+
+        // Verifica se o usuário pertence à família.
+        autorizacao.verificarAcesso(familiaId, usuarioId);
+
+        // Executa a exclusão lógica no PostgreSQL.
+        boolean excluido = repository.excluir(
+                familiaId,
+                documentoId,
+                usuarioId
+        );
+
+        // Documento inexistente ou já excluído.
+        if (!excluido) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "Documento não encontrado ou já excluído"
+            );
+        }
+    }
+
+
 
     private void validarAssinatura(
             byte[] conteudo,

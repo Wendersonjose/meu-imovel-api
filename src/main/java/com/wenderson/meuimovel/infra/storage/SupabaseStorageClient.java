@@ -89,6 +89,39 @@ public class SupabaseStorageClient {
                 .toBodilessEntity();
     }
 
+
+    public byte[] baixar(
+            UUID familiaId,
+            UUID documentoId,
+            String mimeType) {
+
+        String caminho = gerarCaminho(
+                familiaId,
+                documentoId,
+                mimeType
+        );
+
+        URI uri = URI.create(
+                supabaseUrl
+                        + "/storage/v1/object/authenticated/"
+                        + BUCKET + "/" + caminho
+        );
+
+        byte[] arquivo = restClient.get()
+                .uri(uri)
+                .retrieve()
+                .body(byte[].class);
+
+        if (arquivo == null || arquivo.length == 0) {
+            throw new IllegalStateException(
+                    "O Supabase Storage retornou um arquivo vazio"
+            );
+        }
+
+        return arquivo;
+    }
+
+
     private String gerarCaminho(
             UUID familiaId,
             UUID documentoId,
