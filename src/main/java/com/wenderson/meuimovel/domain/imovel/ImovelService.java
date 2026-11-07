@@ -5,19 +5,23 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import com.wenderson.meuimovel.infra.security.UsuarioAutenticado;
 
 @Service
 public class ImovelService {
 
+    private final UsuarioAutenticado usuarioAutenticado;
     private final ImovelRepository repository;
     private final ValidadorCadastroImovel validador;
 
     public ImovelService(
             ImovelRepository repository,
-            ValidadorCadastroImovel validador
+            ValidadorCadastroImovel validador,
+            UsuarioAutenticado usuarioAutenticado
     ) {
         this.repository = repository;
         this.validador = validador;
+        this.usuarioAutenticado = usuarioAutenticado;
     }
 
     public Imovel cadastrar(DadosCadastroImovel dados) {
@@ -30,11 +34,17 @@ public class ImovelService {
     }
 
     public List<Imovel> listar() {
-        return repository.findAll();
+
+        var usuarioId = usuarioAutenticado.obterUsuarioId();
+
+        return repository.findAllAutorizados(usuarioId);
     }
 
     public Imovel buscarPorId(Long id) {
-        return repository.findById(id)
+
+        var usuarioId = usuarioAutenticado.obterUsuarioId();
+
+        return repository.findByIdAutorizado(id, usuarioId)
                 .orElseThrow(() -> new ImovelNaoEncontradoException(id));
     }
 
